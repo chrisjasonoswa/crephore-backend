@@ -1,0 +1,31 @@
+@Crephore.Api_HostAddress = http://localhost:5180
+
+### Sign up
+POST {{Crephore.Api_HostAddress}}/api/auth/signup
+Content-Type: application/json
+
+{
+  "firstName": "Chris",
+  "lastName": "Oswa",
+  "email": "chris@example.com",
+  "password": "password123",
+  "timezone": "Asia/Manila"
+}
+
+### Log in
+# @name login
+POST {{Crephore.Api_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "chris@example.com",
+  "password": "password123"
+}
+
+### Log out
+POST {{Crephore.Api_HostAddress}}/api/auth/logout
+Authorization: Bearer {{login.response.body.$.data.accessToken}}
+
+### Current user
+GET {{Crephore.Api_HostAddress}}/api/auth/me
+Authorization: Bearer {{login.response.body.$.data.accessToken}}

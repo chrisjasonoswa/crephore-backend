@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="src/Crephore.Api/Crephore.Api.csproj" />
+  <Project Path="tests/Crephore.IntegrationTests/Crephore.IntegrationTests.csproj" />
+</Solution>
