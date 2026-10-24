@@ -37,7 +37,6 @@ public class AuthSignupTests(DatabaseFixture fixture)
         data.FirstName.Should().Be(request.FirstName);
         data.LastName.Should().Be(request.LastName);
         data.Email.Should().Be(request.Email);
-        data.Timezone.Should().Be("UTC");
 
         // Never expose the password hash
         body.Should().NotContainEquivalentOf("password");

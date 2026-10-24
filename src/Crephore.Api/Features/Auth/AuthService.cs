@@ -26,8 +26,6 @@ public class AuthService(
     IHttpContextAccessor _httpContextAccessor
 ) : IAuthService
 {
-    private const string DefaultTimezone = "UTC";
-
     public async Task<AppUserDto> SignupAsync(SignupRequestDto request)
     {
         string email = request.Email.Trim();
@@ -39,17 +37,6 @@ public class AuthService(
                 new Dictionary<string, List<string>>
                 {
                     ["email"] = ["Email already exists."]
-                });
-
-        string timezone = string.IsNullOrWhiteSpace(request.Timezone)
-            ? DefaultTimezone
-            : request.Timezone.Trim();
-
-        if (!TimeZoneInfo.TryFindSystemTimeZoneById(timezone, out _))
-            throw new AppValidationException(
-                new Dictionary<string, List<string>>
-                {
-                    ["timezone"] = ["The timezone is not a valid IANA timezone."]
                 });
 
         var appUser = new AppUser

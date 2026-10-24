@@ -24,8 +24,4 @@ public class SignupRequestDto
     [Phone]
     [MaxLength(32)]
     public string? PhoneNumber { get; set; }
-
-    // IANA timezone id (e.g. "Asia/Manila"). Defaults to "UTC" when omitted.
-    [MaxLength(64)]
-    public string? Timezone { get; set; }
 }

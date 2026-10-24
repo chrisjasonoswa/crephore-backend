@@ -15,7 +15,6 @@ public class GetAuthMeTests(DatabaseFixture fixture)
             firstName: "Chris",
             lastName: "Oswa",
             phoneNumber: "+639171234567",
-            timezone: "Asia/Manila",
             isSuperAdmin: true);
 
         var result = await AuthService.GetCurrentUserAsync(user.Id);
@@ -25,7 +24,6 @@ public class GetAuthMeTests(DatabaseFixture fixture)
         result.LastName.Should().Be("Oswa");
         result.Email.Should().Be(user.Email);
         result.PhoneNumber.Should().Be("+639171234567");
-        result.Timezone.Should().Be("Asia/Manila");
         result.IsSuperAdmin.Should().BeTrue();
     }
 

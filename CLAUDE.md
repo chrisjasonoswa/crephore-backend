@@ -22,7 +22,7 @@ Frontend: `../crephore-web` (Nuxt, `http://localhost:3000`). Keep request/respon
 
 ## Entity Description
 - Naming: the user entity is `AppUser` (not `User`) to avoid clashing with `ControllerBase.User` (the current `ClaimsPrincipal`). Prefix user-related types the same way (`AppUserSession`, `AppUserDto`, `AppUserFactory`).
-- AppUser (`IdentityUser<int>`): an account that signs up and logs in by email. Adds `FirstName`, `LastName`, `Timezone` (IANA id), `IsSuperAdmin`, and `CreatedAt`; `Email`, `PhoneNumber`, `PasswordHash`, `SecurityStamp`, and lockout fields come from Identity. Email is unique (unique index on `NormalizedEmail`). `UserName` is required by Identity but is generated (`user_<guid>`) and never user-facing. `IsSuperAdmin` is a platform-level flag, never settable through public signup. The first super admin comes from the `DefaultAdmin` seeder (see "Seeding").
+- AppUser (`IdentityUser<int>`): an account that signs up and logs in by email. Adds `FirstName`, `LastName`, `IsSuperAdmin`, and `CreatedAt`; `Email`, `PhoneNumber`, `PasswordHash`, `SecurityStamp`, and lockout fields come from Identity. Email is unique (unique index on `NormalizedEmail`). `UserName` is required by Identity but is generated (`user_<guid>`) and never user-facing. `IsSuperAdmin` is a platform-level flag, never settable through public signup. The first super admin comes from the `DefaultAdmin` seeder (see "Seeding").
 - AppUserSession: one per login. Every access token carries its `SessionId` (`sid`) and the user's `SecurityStamp` (`sst`). A token is only accepted while its session is not revoked or expired and the stamp still matches. Logout revokes only the current session; rotating the security stamp signs the user out everywhere.
 - Event: (planned) `AppUser.Events`. Add the navigation once the `Event` entity exists.
 
@@ -177,7 +177,7 @@ When adding or modifying queries:
 2. Generate them with the EF CLI from the repository root:
    - `dotnet ef migrations add <MigrationName> --project src/Crephore.Api/Crephore.Api.csproj --output-dir Data/Migrations`
    - `dotnet ef database update --project src/Crephore.Api/Crephore.Api.csproj`
-3. Use PascalCase descriptive names (e.g. `AddEvents`, `AddTimezoneToUsers`).
+3. Use PascalCase descriptive names (e.g. `AddEvents`, `RemoveUserTimezone`).
 
 ---
 

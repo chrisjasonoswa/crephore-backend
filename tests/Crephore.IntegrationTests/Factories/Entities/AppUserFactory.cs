@@ -14,7 +14,6 @@ public class AppUserFactory(UserManager<AppUser> userManager)
         string? firstName = null,
         string? lastName = null,
         string? phoneNumber = null,
-        string? timezone = null,
         bool isSuperAdmin = false
     )
     {
@@ -27,7 +26,6 @@ public class AppUserFactory(UserManager<AppUser> userManager)
             Email = email ?? $"user_{suffix}@test.com",
             UserName = $"user_{suffix}",
             PhoneNumber = phoneNumber,
-            Timezone = timezone ?? "UTC",
             IsSuperAdmin = isSuperAdmin,
         };
 

@@ -20,7 +20,6 @@ public class AuthSignupTests(DatabaseFixture fixture)
             Email = $"chris_{suffix}@test.com",
             Password = "StrongPassword123",
             PhoneNumber = "+639171234567",
-            Timezone = "Asia/Manila",
         };
     }
 
@@ -37,7 +36,6 @@ public class AuthSignupTests(DatabaseFixture fixture)
         result.LastName.Should().Be(request.LastName);
         result.Email.Should().Be(request.Email);
         result.PhoneNumber.Should().Be(request.PhoneNumber);
-        result.Timezone.Should().Be(request.Timezone);
         result.IsSuperAdmin.Should().BeFalse();
 
         // Check user in db
@@ -67,17 +65,6 @@ public class AuthSignupTests(DatabaseFixture fixture)
     }
 
     [Fact]
-    public async Task ShouldDefaultTimezoneToUtc_WhenTimezoneIsNotProvided()
-    {
-        var request = BuildValidRequest();
-        request.Timezone = null;
-
-        var result = await AuthService.SignupAsync(request);
-
-        result.Timezone.Should().Be("UTC");
-    }
-
-    [Fact]
     public async Task ShouldThrowValidationException_WhenEmailAlreadyExists()
     {
         var existingUser = await AppUserFactory.CreateAsync();
@@ -92,19 +79,5 @@ public class AuthSignupTests(DatabaseFixture fixture)
         exception.Which.Errors.Should().ContainKey("email");
 
         (await Context.Users.CountAsync()).Should().Be(1);
-    }
-
-    [Fact]
-    public async Task ShouldThrowValidationException_WhenTimezoneIsInvalid()
-    {
-        var request = BuildValidRequest();
-        request.Timezone = "Not/A_Timezone";
-
-        var act = async () => await AuthService.SignupAsync(request);
-
-        var exception = await act.Should().ThrowAsync<AppValidationException>();
-        exception.Which.Errors.Should().ContainKey("timezone");
-
-        (await Context.Users.AnyAsync()).Should().BeFalse();
     }
 }

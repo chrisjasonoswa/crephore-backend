@@ -7,7 +7,6 @@ public class AppUserDto
     public string LastName { get; set; } = null!;
     public string Email { get; set; } = null!;
     public string? PhoneNumber { get; set; }
-    public string Timezone { get; set; } = null!;
     public bool IsSuperAdmin { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
 }

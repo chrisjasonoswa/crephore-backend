@@ -8,8 +8,7 @@ Content-Type: application/json
   "firstName": "Chris",
   "lastName": "Oswa",
   "email": "chris@example.com",
-  "password": "password123",
-  "timezone": "Asia/Manila"
+  "password": "password123"
 }
 
 ### Log in
