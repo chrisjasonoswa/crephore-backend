@@ -60,7 +60,6 @@ public class AuthService(
             // Identity requires a UserName; users log in by email, so generate an opaque one.
             UserName = $"user_{Guid.NewGuid():N}",
             PhoneNumber = string.IsNullOrWhiteSpace(request.PhoneNumber) ? null : request.PhoneNumber.Trim(),
-            Timezone = timezone,
             // Super admins are never created through public signup.
             IsSuperAdmin = false,
         };

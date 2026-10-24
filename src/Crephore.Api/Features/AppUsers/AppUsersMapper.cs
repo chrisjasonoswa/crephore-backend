@@ -14,7 +14,6 @@ public static class AppUsersMapper
             LastName = user.LastName,
             Email = user.Email ?? string.Empty,
             PhoneNumber = user.PhoneNumber,
-            Timezone = user.Timezone,
             IsSuperAdmin = user.IsSuperAdmin,
             CreatedAt = user.CreatedAt,
         };

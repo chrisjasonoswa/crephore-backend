@@ -24,10 +24,6 @@ public class AppUser : IdentityUser<int>, IHasCreatedAt
     // Security Info
     public bool IsSuperAdmin { get; set; } = false;
 
-    // Preferences
-    // IANA timezone id (e.g. "Asia/Manila")
-    [MaxLength(64)]
-    public string Timezone { get; set; } = "UTC";
 
     // Timestamp
     public DateTimeOffset CreatedAt { get; set; }
