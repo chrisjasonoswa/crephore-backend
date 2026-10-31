@@ -10,32 +10,42 @@ public class AuthLogoutTests(DatabaseFixture fixture)
     : AuthBaseTestClass(fixture)
 {
     [Fact]
-    public async Task ShouldRevokeOnlyCurrentSession_WhenUserAndSessionAreValid()
+    public async Task ShouldRevokeTheSessionsRefreshTokens_WhenUserAndSessionAreValid()
     {
         var user = await AppUserFactory.CreateAsync();
-        var sessionOne = await AppUserSessionFactory.CreateAsync(user);
-        var sessionTwo = await AppUserSessionFactory.CreateAsync(user);
+        var (sessionOne, _) = await AppUserTokenFactory.CreateAsync(user);
+        var (sessionTwo, _) = await AppUserTokenFactory.CreateAsync(user);
 
         await AuthService.LogoutAsync(user.Id, sessionOne.SessionId);
 
-        var sessionOneInDb = await Context.AppUserSessions.AsNoTracking().FirstAsync(s => s.Id == sessionOne.Id);
-        var sessionTwoInDb = await Context.AppUserSessions.AsNoTracking().FirstAsync(s => s.Id == sessionTwo.Id);
-
-        sessionOneInDb.RevokedAt.Should().NotBeNull();
-        sessionTwoInDb.RevokedAt.Should().BeNull();
+        (await Context.AppUserTokens.AsNoTracking().FirstAsync(t => t.Id == sessionOne.Id)).RevokedAt.Should().NotBeNull();
+        // Other devices stay signed in
+        (await Context.AppUserTokens.AsNoTracking().FirstAsync(t => t.Id == sessionTwo.Id)).RevokedAt.Should().BeNull();
     }
 
     [Fact]
-    public async Task ShouldNotRevokeOtherUsersSessions_WhenSessionIdBelongsToAnotherUser()
+    public async Task ShouldNotChangeTheSecurityStamp_SoOtherDevicesStaySignedIn()
+    {
+        var user = await AppUserFactory.CreateAsync();
+        var (token, _) = await AppUserTokenFactory.CreateAsync(user);
+        var stampBefore = user.SecurityStamp;
+
+        await AuthService.LogoutAsync(user.Id, token.SessionId);
+
+        var userInDb = await Context.Users.AsNoTracking().FirstAsync(u => u.Id == user.Id);
+        userInDb.SecurityStamp.Should().Be(stampBefore);
+    }
+
+    [Fact]
+    public async Task ShouldNotRevokeOtherUsersTokens_WhenSessionIdBelongsToAnotherUser()
     {
         var user = await AppUserFactory.CreateAsync();
         var otherUser = await AppUserFactory.CreateAsync();
-        var otherSession = await AppUserSessionFactory.CreateAsync(otherUser);
+        var (otherToken, _) = await AppUserTokenFactory.CreateAsync(otherUser);
 
-        await AuthService.LogoutAsync(user.Id, otherSession.SessionId);
+        await AuthService.LogoutAsync(user.Id, otherToken.SessionId);
 
-        var otherSessionInDb = await Context.AppUserSessions.AsNoTracking().FirstAsync(s => s.Id == otherSession.Id);
-        otherSessionInDb.RevokedAt.Should().BeNull();
+        (await Context.AppUserTokens.AsNoTracking().FirstAsync(t => t.Id == otherToken.Id)).RevokedAt.Should().BeNull();
     }
 
     [Fact]

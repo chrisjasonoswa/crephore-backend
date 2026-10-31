@@ -13,10 +13,12 @@ public class LoginRequestDto
     public string Password { get; set; } = string.Empty;
 }
 
-public class LoginResponseDto
+public class LoginResponseDto : ITokenSessionDto
 {
     public required string AccessToken { get; set; }
+    public required string RefreshToken { get; set; }
     public required string SessionId { get; set; }
     public DateTimeOffset AccessTokenExpiresAt { get; set; }
+    public DateTimeOffset RefreshTokenExpiresAt { get; set; }
     public required AppUserDto User { get; set; }
 }

@@ -29,6 +29,9 @@ app.UseHttpsRedirection();
 
 app.UseCors(ProgramServiceExtensions.FrontendCorsPolicy);
 
+// Uploaded photos, when they are stored on this machine (Storage:Provider "Local")
+app.UseLocalFileStorage();
+
 app.UseAuthentication();
 app.UseAuthorization();
 

@@ -106,7 +106,7 @@ namespace Crephore.Api.Data.Migrations
                     b.ToTable("app_users", (string)null);
                 });
 
-            modelBuilder.Entity("Crephore.Api.Data.Entities.AppUserSession", b =>
+            modelBuilder.Entity("Crephore.Api.Data.Entities.AppUserToken", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -124,6 +124,10 @@ namespace Crephore.Api.Data.Migrations
                     b.Property<DateTimeOffset>("ExpiresAt")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<string>("ReplacedByTokenHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
                     b.Property<DateTimeOffset?>("RevokedAt")
                         .HasColumnType("datetime(6)");
 
@@ -131,7 +135,20 @@ namespace Crephore.Api.Data.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("varchar(64)");
 
+                    b.Property<string>("SecurityStamp")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
+
+                    b.Property<DateTimeOffset>("SessionExpiresAt")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<string>("SessionId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("TokenHash")
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("varchar(64)");
@@ -148,12 +165,316 @@ namespace Crephore.Api.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SessionId")
+                    b.HasIndex("TokenHash")
                         .IsUnique();
 
                     b.HasIndex("UserId", "SessionId");
 
-                    b.ToTable("app_user_sessions");
+                    b.ToTable("app_user_tokens");
+                });
+
+            modelBuilder.Entity("Crephore.Api.Data.Entities.Event", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<DateTimeOffset>("EndsAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<DateTimeOffset>("StartsAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Subdomain")
+                        .IsRequired()
+                        .HasMaxLength(63)
+                        .HasColumnType("varchar(63)");
+
+                    b.PrimitiveCollection<string>("Timeline")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("json")
+                        .HasDefaultValueSql("(JSON_ARRAY())");
+
+                    b.Property<string>("Timezone")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<string>("VenueAddress")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("VenueGooglePlaceId")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<decimal?>("VenueLatitude")
+                        .HasPrecision(9, 6)
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<decimal?>("VenueLongitude")
+                        .HasPrecision(9, 6)
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<string>("VenueName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Subdomain")
+                        .IsUnique()
+                        .HasDatabaseName("IX_events_Subdomain");
+
+                    b.ToTable("events");
+                });
+
+            modelBuilder.Entity("Crephore.Api.Data.Entities.EventGroup", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("OwnerId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId", "Name")
+                        .IsUnique()
+                        .HasDatabaseName("IX_event_groups_OwnerId_Name");
+
+                    b.ToTable("event_groups");
+                });
+
+            modelBuilder.Entity("Crephore.Api.Data.Entities.EventUser", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("EventId")
+                        .HasColumnType("int");
+
+                    b.PrimitiveCollection<string>("Access")
+                        .IsRequired()
+                        .HasColumnType("json");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("EventGroupId")
+                        .HasColumnType("int");
+
+                    b.HasKey("UserId", "EventId");
+
+                    b.HasIndex("EventGroupId");
+
+                    b.HasIndex("EventId");
+
+                    b.ToTable("event_users");
+                });
+
+            modelBuilder.Entity("Crephore.Api.Data.Entities.EventWebsite", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AccentColor")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("varchar(7)");
+
+                    b.Property<string>("BackgroundColor")
+                        .HasMaxLength(7)
+                        .HasColumnType("varchar(7)");
+
+                    b.Property<string>("CornerStyle")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("varchar(16)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("EventId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FontPairingKey")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<string>("PrimaryColor")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("varchar(7)");
+
+                    b.Property<DateTimeOffset?>("PublishedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("PublishedContent")
+                        .HasColumnType("json");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_event_websites_EventId");
+
+                    b.ToTable("event_websites");
+                });
+
+            modelBuilder.Entity("Crephore.Api.Data.Entities.Media", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("EventId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<int?>("UploaderUserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventId");
+
+                    b.HasIndex("StorageKey")
+                        .IsUnique();
+
+                    b.HasIndex("UploaderUserId");
+
+                    b.ToTable("media");
+                });
+
+            modelBuilder.Entity("Crephore.Api.Data.Entities.WebsiteSection", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Background")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("varchar(16)");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("json");
+
+                    b.Property<int>("ContentVersion")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("EventWebsiteId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsVisible")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Layout")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<string>("Options")
+                        .IsRequired()
+                        .HasColumnType("json");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Visibility")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("varchar(16)")
+                        .HasDefaultValue("Always");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventWebsiteId", "SortOrder");
+
+                    b.ToTable("website_sections");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<int>", b =>
@@ -217,18 +538,95 @@ namespace Crephore.Api.Data.Migrations
 
                     b.HasKey("UserId", "LoginProvider", "Name");
 
-                    b.ToTable("app_user_tokens", (string)null);
+                    b.ToTable("app_user_identity_tokens", (string)null);
                 });
 
-            modelBuilder.Entity("Crephore.Api.Data.Entities.AppUserSession", b =>
+            modelBuilder.Entity("Crephore.Api.Data.Entities.AppUserToken", b =>
                 {
                     b.HasOne("Crephore.Api.Data.Entities.AppUser", "User")
-                        .WithMany("Sessions")
+                        .WithMany("Tokens")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Crephore.Api.Data.Entities.EventGroup", b =>
+                {
+                    b.HasOne("Crephore.Api.Data.Entities.AppUser", "Owner")
+                        .WithMany("EventGroups")
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Owner");
+                });
+
+            modelBuilder.Entity("Crephore.Api.Data.Entities.EventUser", b =>
+                {
+                    b.HasOne("Crephore.Api.Data.Entities.EventGroup", "EventGroup")
+                        .WithMany("EventUsers")
+                        .HasForeignKey("EventGroupId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Crephore.Api.Data.Entities.Event", "Event")
+                        .WithMany("EventUsers")
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Crephore.Api.Data.Entities.AppUser", "User")
+                        .WithMany("EventUsers")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Event");
+
+                    b.Navigation("EventGroup");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Crephore.Api.Data.Entities.EventWebsite", b =>
+                {
+                    b.HasOne("Crephore.Api.Data.Entities.Event", "Event")
+                        .WithOne("Website")
+                        .HasForeignKey("Crephore.Api.Data.Entities.EventWebsite", "EventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Event");
+                });
+
+            modelBuilder.Entity("Crephore.Api.Data.Entities.Media", b =>
+                {
+                    b.HasOne("Crephore.Api.Data.Entities.Event", "Event")
+                        .WithMany("Media")
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Crephore.Api.Data.Entities.AppUser", "UploaderUser")
+                        .WithMany()
+                        .HasForeignKey("UploaderUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Event");
+
+                    b.Navigation("UploaderUser");
+                });
+
+            modelBuilder.Entity("Crephore.Api.Data.Entities.WebsiteSection", b =>
+                {
+                    b.HasOne("Crephore.Api.Data.Entities.EventWebsite", "EventWebsite")
+                        .WithMany("Sections")
+                        .HasForeignKey("EventWebsiteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("EventWebsite");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<int>", b =>
@@ -260,7 +658,30 @@ namespace Crephore.Api.Data.Migrations
 
             modelBuilder.Entity("Crephore.Api.Data.Entities.AppUser", b =>
                 {
-                    b.Navigation("Sessions");
+                    b.Navigation("EventGroups");
+
+                    b.Navigation("EventUsers");
+
+                    b.Navigation("Tokens");
+                });
+
+            modelBuilder.Entity("Crephore.Api.Data.Entities.Event", b =>
+                {
+                    b.Navigation("EventUsers");
+
+                    b.Navigation("Media");
+
+                    b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Crephore.Api.Data.Entities.EventGroup", b =>
+                {
+                    b.Navigation("EventUsers");
+                });
+
+            modelBuilder.Entity("Crephore.Api.Data.Entities.EventWebsite", b =>
+                {
+                    b.Navigation("Sections");
                 });
 #pragma warning restore 612, 618
         }

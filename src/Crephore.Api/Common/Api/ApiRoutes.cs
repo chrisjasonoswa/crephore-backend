@@ -41,6 +41,12 @@ public static class ApiRoutes
             public const string FullPath = $"{Auth.FullPath}/{RelativeRoute}";
         }
 
+        public static class Refresh
+        {
+            public const string RelativeRoute = "refresh";
+            public const string FullPath = $"{Auth.FullPath}/{RelativeRoute}";
+        }
+
         public static class Logout
         {
             public const string RelativeRoute = "logout";
@@ -51,6 +57,58 @@ public static class ApiRoutes
         {
             public const string RelativeRoute = "me";
             public const string FullPath = $"{Auth.FullPath}/{RelativeRoute}";
+        }
+    }
+
+    public static class Events
+    {
+        public const string Route = "events";
+        public const string FullPath = $"{Prefix}/{Route}";
+    }
+
+    // An event's website (one per event): api/events/{eventId}/website
+    public static class EventWebsites
+    {
+        public const string Route = $"{Events.Route}/{{eventId:int}}/website";
+        public static string FullPath(int eventId) => $"{Events.FullPath}/{eventId}/website";
+
+        // Sub resources: api/events/{eventId}/website/publish, …/unpublish
+        public static class Publish
+        {
+            public const string RelativeRoute = "publish";
+            public static string FullPath(int eventId) => $"{EventWebsites.FullPath(eventId)}/{RelativeRoute}";
+        }
+
+        public static class Unpublish
+        {
+            public const string RelativeRoute = "unpublish";
+            public static string FullPath(int eventId) => $"{EventWebsites.FullPath(eventId)}/{RelativeRoute}";
+        }
+    }
+
+    // Published event websites, for guests (no sign-in): api/sites/{subdomain}
+    public static class Sites
+    {
+        public const string Route = "sites";
+        public const string FullPath = $"{Prefix}/{Route}";
+    }
+
+    // Files uploaded for an event: api/events/{eventId}/media
+    public static class Media
+    {
+        public const string Route = $"{Events.Route}/{{eventId:int}}/media";
+        public static string FullPath(int eventId) => $"{Events.FullPath}/{eventId}/media";
+    }
+
+    public static class EventGroups
+    {
+        public const string Route = "event-groups";
+        public const string FullPath = $"{Prefix}/{Route}";
+
+        // Sub resources: api/event-groups/{id}/events/{eventId}
+        public static class Events
+        {
+            public const string RelativeRoute = "events";
         }
     }
 }

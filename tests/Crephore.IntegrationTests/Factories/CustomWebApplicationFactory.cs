@@ -15,6 +15,10 @@ public class CustomWebApplicationFactory(string connectionString) : WebApplicati
 {
     private readonly string _connectionString = connectionString;
 
+    // Uploaded files go to a temporary folder of their own, deleted with the factory
+    public string StorageRootPath { get; } = Path.Combine(Path.GetTempPath(), $"crephore-test-uploads_{Guid.NewGuid().ToString("N")[..8]}");
+    public const string StoragePublicBaseUrl = "http://localhost/uploads";
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         // Tests run as "Development"; keep the dev default admin out of the test databases.
@@ -24,6 +28,10 @@ public class CustomWebApplicationFactory(string connectionString) : WebApplicati
             {
                 ["DefaultAdmin:Email"] = "",
                 ["DefaultAdmin:Password"] = "",
+                ["Storage:Provider"] = "Local",
+                ["Storage:Local:RootPath"] = StorageRootPath,
+                ["Storage:Local:RequestPath"] = "/uploads",
+                ["Storage:Local:PublicBaseUrl"] = StoragePublicBaseUrl,
             });
         });
 
@@ -44,9 +52,21 @@ public class CustomWebApplicationFactory(string connectionString) : WebApplicati
             // Register Factories
             // REMINDER: Also expose new factories in BaseTestClass.
             services.AddScoped<AppUserFactory>();
-            services.AddScoped<AppUserSessionFactory>();
+            services.AddScoped<AppUserTokenFactory>();
+            services.AddScoped<EventFactory>();
+            services.AddScoped<EventGroupFactory>();
+            services.AddScoped<EventUserFactory>();
+            services.AddScoped<EventWebsiteFactory>();
         });
 
         builder.UseEnvironment("Development");
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+
+        if (Directory.Exists(StorageRootPath))
+            Directory.Delete(StorageRootPath, recursive: true);
     }
 }

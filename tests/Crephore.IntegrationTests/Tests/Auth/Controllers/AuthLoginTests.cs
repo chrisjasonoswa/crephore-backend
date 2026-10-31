@@ -31,6 +31,7 @@ public class AuthLoginTests(DatabaseFixture fixture)
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         data.Should().NotBeNull();
         data!.AccessToken.Should().NotBeNullOrWhiteSpace();
+        data.RefreshToken.Should().NotBeNullOrWhiteSpace();
         data.SessionId.Should().NotBeNullOrWhiteSpace();
         data.AccessTokenExpiresAt.Should().BeAfter(DateTimeOffset.UtcNow);
         data.User.Id.Should().Be(user.Id);
@@ -38,6 +39,9 @@ public class AuthLoginTests(DatabaseFixture fixture)
         response.Headers.TryGetValues("Set-Cookie", out var setCookieValues).Should().BeTrue();
         var setCookies = setCookieValues!.ToList();
         setCookies.Should().Contain(c => c.StartsWith($"{AuthCookies.AccessToken}=") && c.Contains("httponly"));
+        setCookies.Should().Contain(c => c.StartsWith($"{AuthCookies.RefreshToken}=") && c.Contains("httponly")
+            // Only sent to the refresh endpoint
+            && c.Contains($"path=/{ApiRoutes.Auth.Refresh.FullPath}"));
         setCookies.Should().Contain(c => c.StartsWith($"{AuthCookies.SessionId}="));
     }
 

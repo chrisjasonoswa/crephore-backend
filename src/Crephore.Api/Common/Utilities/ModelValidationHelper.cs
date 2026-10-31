@@ -17,6 +17,10 @@ public class ModelValidationHelper
         if (string.IsNullOrWhiteSpace(errorMessage))
             return "Invalid input.";
 
+        // Errors about the request as a whole (e.g. a form over its size limit) have no field
+        if (string.IsNullOrEmpty(rawFieldName))
+            return errorMessage;
+
         var readableFieldName = ToReadableFieldName(rawFieldName);
 
         // Replace only the field name, keep rest of message intact

@@ -4,11 +4,17 @@ using System.Text.Json.Serialization;
 using Crephore.Api.Common.Api;
 using Crephore.Api.Common.Authentication;
 using Crephore.Api.Common.Authorization;
+using Crephore.Api.Common.Storage;
 using Crephore.Api.Common.Utilities;
 using Crephore.Api.Data;
 using Crephore.Api.Data.Entities;
 using Crephore.Api.Data.Seeders;
 using Crephore.Api.Features.Auth;
+using Crephore.Api.Features.EventGroups;
+using Crephore.Api.Features.Events;
+using Crephore.Api.Features.EventWebsites;
+using Crephore.Api.Features.Media;
+using Crephore.Api.Features.Sites;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -34,6 +40,7 @@ public static class ProgramServiceExtensions
         AddCors(services, configuration);
         AddIdentity(services);
         AddDependencyInjections(services);
+        AddFileStorage(services, configuration);
         AddModelValidation(services);
         return services;
     }
@@ -140,8 +147,8 @@ public static class ProgramServiceExtensions
                             return Task.CompletedTask;
                         },
 
-                        // Reject tokens whose session has been revoked (logout) or expired,
-                        // or whose security stamp is outdated (password change/reset).
+                        // Reject tokens whose session was logged out, or whose security stamp is outdated
+                        // (password change/reset). Expired access tokens are renewed with POST auth/refresh.
                         OnTokenValidated = async context =>
                         {
                             if (context.Principal is null)
@@ -152,18 +159,18 @@ public static class ProgramServiceExtensions
 
                             var userId = context.Principal.GetUserId();
                             var sessionId = context.Principal.FindFirstValue(CustomClaimTypes.SessionId);
-                            var securityStamp = context.Principal.FindFirstValue(CustomClaimTypes.SecurityStamp);
+                            var tokenSecurityStamp = context.Principal.FindFirstValue(CustomClaimTypes.SecurityStamp);
 
-                            if (string.IsNullOrWhiteSpace(sessionId) || string.IsNullOrWhiteSpace(securityStamp))
+                            if (string.IsNullOrWhiteSpace(sessionId) || string.IsNullOrWhiteSpace(tokenSecurityStamp))
                             {
                                 context.Fail("Missing required token claims.");
                                 return;
                             }
 
                             var validationService = context.HttpContext.RequestServices
-                                .GetRequiredService<ISessionValidationService>();
+                                .GetRequiredService<ITokenValidationService>();
 
-                            var isValid = await validationService.IsTokenStateValidAsync(userId, sessionId, securityStamp);
+                            var isValid = await validationService.IsTokenStateValidAsync(userId, sessionId, tokenSecurityStamp);
 
                             if (!isValid)
                             {
@@ -224,11 +231,30 @@ public static class ProgramServiceExtensions
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUser, CurrentUser>();
         services.AddScoped<ITokenProvider, TokenProvider>();
-        services.AddScoped<ISessionValidationService, SessionValidationService>();
+        services.AddScoped<ITokenValidationService, TokenValidationService>();
 
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IEventsService, EventsService>();
+        services.AddScoped<IEventGroupsService, EventGroupsService>();
+        services.AddScoped<IEventWebsitesService, EventWebsitesService>();
+        services.AddScoped<IMediaService, MediaService>();
+        services.AddScoped<ISitesService, SitesService>();
 
         services.AddScoped<IAdminSeeder, AdminSeeder>();
+    }
+
+
+    // Uploaded files: a local folder for now (Storage:Provider "Local"); Backblaze B2 (S3 API) comes with hosting
+    private static void AddFileStorage(IServiceCollection services, IConfiguration configuration)
+    {
+        var section = configuration.GetSection(StorageOptions.SectionName);
+        services.Configure<StorageOptions>(section);
+
+        var provider = section.Get<StorageOptions>()?.Provider ?? StorageOptions.LocalProvider;
+        if (provider != StorageOptions.LocalProvider)
+            throw new InvalidOperationException($"Storage provider \"{provider}\" is not supported yet; use \"{StorageOptions.LocalProvider}\".");
+
+        services.AddSingleton<IFileStorage, LocalFileStorage>();
     }
 
 

@@ -29,6 +29,7 @@ public class AppUser : IdentityUser<int>, IHasCreatedAt
     public DateTimeOffset CreatedAt { get; set; }
 
     /* Related Properties */
-    // TODO: Add `ICollection<Event> Events` once the Event entity exists.
-    public ICollection<AppUserSession> Sessions { get; set; } = new List<AppUserSession>();
+    public ICollection<AppUserToken> Tokens { get; set; } = new List<AppUserToken>();
+    public ICollection<EventUser> EventUsers { get; set; } = new List<EventUser>();
+    public ICollection<EventGroup> EventGroups { get; set; } = new List<EventGroup>();
 }

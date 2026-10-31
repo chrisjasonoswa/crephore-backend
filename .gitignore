@@ -371,3 +371,5 @@ FodyWeavers.xsd
 # AI
 .agents
 .codex-artifacts
+# Photos uploaded in local development (Storage:Provider "Local")
+src/Crephore.Api/uploads/

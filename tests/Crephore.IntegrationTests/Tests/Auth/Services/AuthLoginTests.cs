@@ -13,15 +13,17 @@ public class AuthLoginTests(DatabaseFixture fixture)
     : AuthBaseTestClass(fixture)
 {
     [Fact]
-    public async Task ShouldReturnTokenAndCreateSession_WhenCredentialsAreValid()
+    public async Task ShouldReturnTokensAndStoreTheRefreshTokenHashed_WhenCredentialsAreValid()
     {
         var user = await AppUserFactory.CreateAsync();
 
         var result = await AuthService.LoginAsync(user.Email!, AppUserFactory.GetValidPassword);
 
         result.AccessToken.Should().NotBeNullOrWhiteSpace();
+        result.RefreshToken.Should().NotBeNullOrWhiteSpace();
         result.SessionId.Should().NotBeNullOrWhiteSpace();
-        result.AccessTokenExpiresAt.Should().BeAfter(DateTimeOffset.UtcNow);
+        // Short-lived access token (JWT:ExpirationInMinutes = 30); renewed with the refresh token
+        result.AccessTokenExpiresAt.Should().BeCloseTo(DateTimeOffset.UtcNow.AddMinutes(30), TimeSpan.FromMinutes(1));
         result.User.Id.Should().Be(user.Id);
         result.User.Email.Should().Be(user.Email!);
 
@@ -30,13 +32,16 @@ public class AuthLoginTests(DatabaseFixture fixture)
         jwt.Subject.Should().Be(user.Id.ToString());
         jwt.Claims.First(c => c.Type == CustomClaimTypes.SessionId).Value.Should().Be(result.SessionId);
 
-        // Session persisted
-        var sessionInDb = await Context.AppUserSessions
-            .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.UserId == user.Id && s.SessionId == result.SessionId);
-        sessionInDb.Should().NotBeNull();
-        sessionInDb!.RevokedAt.Should().BeNull();
-        sessionInDb.ExpiresAt.Should().BeCloseTo(result.AccessTokenExpiresAt, TimeSpan.FromSeconds(1));
+        // Refresh token persisted as a hash, for 7 days, with the user's current security stamp
+        var tokenInDb = await Context.AppUserTokens.AsNoTracking().SingleAsync(t => t.UserId == user.Id);
+        tokenInDb.SessionId.Should().Be(result.SessionId);
+        tokenInDb.TokenHash.Should().Be(TokenProvider.HashToken(result.RefreshToken)).And.NotBe(result.RefreshToken);
+        tokenInDb.SecurityStamp.Should().Be((await UserManager.FindByIdAsync(user.Id.ToString()))!.SecurityStamp);
+        tokenInDb.ExpiresAt.Should().BeCloseTo(DateTimeOffset.UtcNow.AddDays(7), TimeSpan.FromMinutes(1));
+        // The login itself ends after 30 days, however active
+        tokenInDb.SessionExpiresAt.Should().BeCloseTo(DateTimeOffset.UtcNow.AddDays(30), TimeSpan.FromMinutes(1));
+        result.RefreshTokenExpiresAt.Should().BeCloseTo(tokenInDb.ExpiresAt, TimeSpan.FromSeconds(1));
+        tokenInDb.RevokedAt.Should().BeNull();
     }
 
     [Fact]
@@ -81,7 +86,7 @@ public class AuthLoginTests(DatabaseFixture fixture)
         var exception = await act.Should().ThrowAsync<UnauthorizedException>();
         exception.Which.Message.Should().Be("Invalid credentials");
 
-        (await Context.AppUserSessions.AnyAsync()).Should().BeFalse();
+        (await Context.AppUserTokens.AnyAsync()).Should().BeFalse();
     }
 
     [Fact]

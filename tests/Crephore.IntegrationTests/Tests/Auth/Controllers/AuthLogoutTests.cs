@@ -27,6 +27,7 @@ public class AuthLogoutTests(DatabaseFixture fixture)
 
         var setCookies = setCookieValues!.ToList();
         setCookies.Should().Contain(c => c.StartsWith($"{AuthCookies.AccessToken}="));
+        setCookies.Should().Contain(c => c.StartsWith($"{AuthCookies.RefreshToken}=") && c.Contains($"path=/{ApiRoutes.Auth.Refresh.FullPath}"));
         setCookies.Should().Contain(c => c.StartsWith($"{AuthCookies.SessionId}="));
     }
 

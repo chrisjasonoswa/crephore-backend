@@ -1,5 +1,6 @@
 using Crephore.Api.Common.Api;
 using Crephore.Api.Common.Authentication;
+using Crephore.Api.Common.Exceptions;
 using Crephore.Api.Features.Auth.Dtos;
 using Crephore.Api.Features.AppUsers.Dtos;
 using Microsoft.AspNetCore.Authorization;
@@ -37,6 +38,28 @@ public class AuthController(
     }
 
 
+    [HttpPost(ApiRoutes.Auth.Refresh.RelativeRoute)]
+    public async Task<IActionResult> Refresh([FromBody] RefreshRequestDto? request)
+    {
+        // Get refresh token either from cookies (web) or from the request body (API clients)
+        var refreshToken =
+            Request.Cookies[AuthCookies.RefreshToken]
+            ?? request?.RefreshToken;
+
+        if (string.IsNullOrWhiteSpace(refreshToken))
+            throw new UnauthorizedException(
+                "Your session has expired.",
+                new Dictionary<string, List<string>>
+                {
+                    ["refreshToken"] = ["missing"]
+                });
+
+        RefreshResponseDto result = await _authService.RefreshAsync(refreshToken);
+        SetAuthCookies(result);
+        return Ok(ApiResponse<RefreshResponseDto>.Ok(result));
+    }
+
+
     [HttpPost(ApiRoutes.Auth.Logout.RelativeRoute)]
     [Authorize]
     public async Task<IActionResult> Logout()
@@ -64,23 +87,32 @@ public class AuthController(
 
     // Helpers
 
+    // The refresh token cookie is only sent to the refresh endpoint, not with every API request
+    private const string RefreshCookiePath = "/" + ApiRoutes.Auth.Refresh.FullPath;
+
     private void ClearAuthCookies()
     {
         Response.Cookies.Delete(AuthCookies.AccessToken);
+        Response.Cookies.Delete(AuthCookies.RefreshToken, new CookieOptions { Path = RefreshCookiePath });
         Response.Cookies.Delete(AuthCookies.SessionId);
     }
 
-    private void SetAuthCookies(LoginResponseDto result)
+    private void SetAuthCookies(ITokenSessionDto result)
     {
-        var cookieOptions = new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.Lax,
-            Expires = result.AccessTokenExpiresAt
-        };
-
-        Response.Cookies.Append(AuthCookies.AccessToken, result.AccessToken, cookieOptions);
-        Response.Cookies.Append(AuthCookies.SessionId, result.SessionId, cookieOptions);
+        Response.Cookies.Append(AuthCookies.AccessToken, result.AccessToken, CookieOptions(result.AccessTokenExpiresAt));
+        Response.Cookies.Append(
+            AuthCookies.RefreshToken,
+            result.RefreshToken,
+            CookieOptions(result.RefreshTokenExpiresAt, RefreshCookiePath));
+        Response.Cookies.Append(AuthCookies.SessionId, result.SessionId, CookieOptions(result.RefreshTokenExpiresAt));
     }
+
+    private static CookieOptions CookieOptions(DateTimeOffset expires, string path = "/") => new()
+    {
+        HttpOnly = true,
+        Secure = true,
+        SameSite = SameSiteMode.Lax,
+        Expires = expires,
+        Path = path,
+    };
 }
