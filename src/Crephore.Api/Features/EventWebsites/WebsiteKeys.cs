@@ -34,6 +34,10 @@ public static class WebsiteKeys
                 "split", "photo-row", "mosaic", "divider", "portrait", "scrapbook", "magazine",
                 "timeline-zigzag", "timeline-list", "timeline-cards", "timeline-polaroids", "timeline-compact",
             },
+            ["people"] = new HashSet<string>
+            {
+                "grid", "entourage", "featured", "cards", "spotlight", "carousel", "staggered", "polaroids", "directory", "credits",
+            },
         };
 
     public static readonly IReadOnlySet<string> Backgrounds = new HashSet<string> { "light", "photo", "primary", "accent" };
