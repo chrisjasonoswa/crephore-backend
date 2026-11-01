@@ -38,7 +38,23 @@ public static class WebsiteKeys
 
     public static readonly IReadOnlySet<string> Backgrounds = new HashSet<string> { "light", "photo", "primary", "accent" };
 
-    public static readonly IReadOnlySet<string> FontPairings = new HashSet<string> { "serif_classic", "modern_sans", "romantic", "playful", "script", "luxurious_script" };
+    public static readonly IReadOnlySet<string> FontPairings = new HashSet<string>
+    {
+        // Weddings & engagements
+        "serif_classic", "romantic", "timeless", "grand_ballroom", "modern_romance", "editorial", "garden", "vintage", "heirloom",
+        "soft_serif", "marble", "chapel",
+        // Script & calligraphy
+        "script", "luxurious_script", "parisian", "love_letter", "calligraphy", "handwritten_vows", "ribbon", "formal_invitation",
+        "sunset", "royal_script",
+        // Modern & minimal
+        "modern_sans", "minimal", "gallery", "clean", "architect", "studio", "art_deco", "journal",
+        // Birthdays & parties
+        "playful", "confetti", "party_pop", "diner", "bold_bash", "kids_party", "neon", "sketchbook", "sunny", "glam",
+        // Business & conferences
+        "plex", "keynote", "summit", "trusted", "startup", "annual_report",
+        // Memorials & tributes
+        "remembrance", "tribute", "quiet_light", "hymn",
+    };
 
     public static readonly IReadOnlySet<string> CornerStyles = new HashSet<string> { "sharp", "soft", "round" };
 }
