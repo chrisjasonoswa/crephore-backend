@@ -24,7 +24,7 @@ public class UpdateEventWebsiteTests(DatabaseFixture fixture)
                 layout = "fullscreen",
                 background = "photo",
                 options = new Dictionary<string, string> { ["textPosition"] = "bottom-left" },
-                content = new { title = "Ana & Marco", layoutPhotos = Array.Empty<string>(), cta = new { label = "RSVP", href = "#rsvp" } },
+                content = new { heading = "Ana & Marco", layoutPhotos = Array.Empty<string>(), cta = new { label = "RSVP", href = "#rsvp" } },
                 contentVersion = 1,
                 isVisible = true,
             },

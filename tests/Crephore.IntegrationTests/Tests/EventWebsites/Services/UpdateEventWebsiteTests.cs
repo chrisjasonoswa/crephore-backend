@@ -14,14 +14,14 @@ namespace Crephore.IntegrationTests.Tests.EventWebsites.Services;
 public class UpdateEventWebsiteTests(DatabaseFixture fixture)
     : EventWebsitesBaseTestClass(fixture)
 {
-    private static UpdateWebsiteSectionRequestDto BuildSection(int? id = null, string type = "hero", string layout = "split", string title = "Ana & Marco") => new()
+    private static UpdateWebsiteSectionRequestDto BuildSection(int? id = null, string type = "hero", string layout = "split", string heading = "Ana & Marco") => new()
     {
         Id = id,
         Type = type,
         Layout = layout,
         Background = "photo",
         Options = new Dictionary<string, string> { ["photoSide"] = "left" },
-        Content = JsonSerializer.SerializeToElement(new { title, backgroundPhoto = "http://localhost/uploads/a.jpg", layoutPhotos = Array.Empty<string>() }),
+        Content = JsonSerializer.SerializeToElement(new { heading, backgroundPhoto = "http://localhost/uploads/a.jpg", layoutPhotos = Array.Empty<string>() }),
         ContentVersion = 1,
         IsVisible = true,
     };
@@ -46,9 +46,9 @@ public class UpdateEventWebsiteTests(DatabaseFixture fixture)
         var @event = await EventFactory.CreateAsync(owner.Id);
 
         var website = await EventWebsitesService.UpdateAsync(@event.Id, owner.Id,
-            BuildRequest(BuildSection(title: "First"), BuildSection(type: "countdown", layout: "boxes", title: "Second")));
+            BuildRequest(BuildSection(heading: "First"), BuildSection(type: "countdown", layout: "boxes", heading: "Second")));
 
-        website.Sections.Select(s => s.Content.GetProperty("title").GetString()).Should().Equal("First", "Second");
+        website.Sections.Select(s => s.Content.GetProperty("heading").GetString()).Should().Equal("First", "Second");
         website.Theme.PrimaryColor.Should().Be("#5E7A63");
 
         var saved = await Context.EventWebsites.AsNoTracking().Include(w => w.Sections).SingleAsync(w => w.EventId == @event.Id);
@@ -72,10 +72,10 @@ public class UpdateEventWebsiteTests(DatabaseFixture fixture)
 
         // A new section first, then the kept one with a new layout
         var website = await EventWebsitesService.UpdateAsync(@event.Id, owner.Id,
-            BuildRequest(BuildSection(type: "countdown", layout: "rings", title: "New"), BuildSection(id: kept.Id, layout: "arch", title: "Kept")));
+            BuildRequest(BuildSection(type: "countdown", layout: "rings", heading: "New"), BuildSection(id: kept.Id, layout: "arch", heading: "Kept")));
 
         website.Id.Should().Be(existing.Id);
-        website.Sections.Select(s => s.Content.GetProperty("title").GetString()).Should().Equal("New", "Kept");
+        website.Sections.Select(s => s.Content.GetProperty("heading").GetString()).Should().Equal("New", "Kept");
         website.Sections[1].Id.Should().Be(kept.Id);
 
         var sections = await Context.WebsiteSections.AsNoTracking().Where(s => s.EventWebsiteId == existing.Id).OrderBy(s => s.SortOrder).ToListAsync();
@@ -98,18 +98,6 @@ public class UpdateEventWebsiteTests(DatabaseFixture fixture)
             .Should().Equal(SectionVisibility.Always, SectionVisibility.BeforeEvent);
     }
 
-    [Fact]
-    public async Task ShouldRemoveEverySection_WhenNoSectionsAreSent()
-    {
-        var owner = await AppUserFactory.CreateAsync();
-        var @event = await EventFactory.CreateAsync(owner.Id);
-        await EventWebsiteFactory.CreateAsync(@event.Id);
-
-        var website = await EventWebsitesService.UpdateAsync(@event.Id, owner.Id, BuildRequest());
-
-        website.Sections.Should().BeEmpty();
-        (await Context.WebsiteSections.CountAsync()).Should().Be(0);
-    }
 
     [Fact]
     public async Task ShouldCreateOneWebsite_WhenItIsFirstSavedTwiceAtOnce()
@@ -133,7 +121,7 @@ public class UpdateEventWebsiteTests(DatabaseFixture fixture)
     {
         var owner = await AppUserFactory.CreateAsync();
         var @event = await EventFactory.CreateAsync(owner.Id);
-        var request = BuildRequest();
+        var request = BuildRequest(BuildSection());
         request.Theme.FontPairingKey = "comic_sans";
         request.Theme.CornerStyle = "wavy";
 
@@ -149,7 +137,7 @@ public class UpdateEventWebsiteTests(DatabaseFixture fixture)
         var @event = await EventFactory.CreateAsync(owner.Id);
         var unknownType = BuildSection(type: "gallery");
         var unknownLayout = BuildSection(layout: "boxes");
-        var unknownBackground = BuildSection();
+        var unknownBackground = BuildSection(type: "countdown", layout: "boxes");
         unknownBackground.Background = "dark";
 
         var act = async () => await EventWebsitesService.UpdateAsync(@event.Id, owner.Id, BuildRequest(unknownType, unknownLayout, unknownBackground));
@@ -170,14 +158,61 @@ public class UpdateEventWebsiteTests(DatabaseFixture fixture)
         var @event = await EventFactory.CreateAsync(owner.Id);
         var notAnObject = BuildSection();
         notAnObject.Content = JsonSerializer.SerializeToElement("Ana & Marco");
-        var tooLarge = BuildSection();
-        tooLarge.Content = JsonSerializer.SerializeToElement(new { title = new string('a', Crephore.Api.Features.EventWebsites.EventWebsitesService.ContentMaxBytes) });
+        var tooLarge = BuildSection(type: "countdown", layout: "boxes");
+        tooLarge.Content = JsonSerializer.SerializeToElement(new { heading = new string('a', Crephore.Api.Features.EventWebsites.EventWebsitesService.ContentMaxBytes) });
 
         var act = async () => await EventWebsitesService.UpdateAsync(@event.Id, owner.Id, BuildRequest(notAnObject, tooLarge));
 
         (await act.Should().ThrowAsync<AppValidationException>()).Which.Errors!["sections"].Should().Equal(
             "Section 1 has no content.",
             "Section 2 has too much content.");
+    }
+
+    [Fact]
+    public async Task ShouldThrowValidationException_WhenThereIsNoHeroSection()
+    {
+        var owner = await AppUserFactory.CreateAsync();
+        var @event = await EventFactory.CreateAsync(owner.Id);
+        await EventWebsiteFactory.CreateAsync(@event.Id);
+
+        var empty = async () => await EventWebsitesService.UpdateAsync(@event.Id, owner.Id, BuildRequest());
+        var noHero = async () => await EventWebsitesService.UpdateAsync(@event.Id, owner.Id, BuildRequest(BuildSection(type: "countdown", layout: "boxes")));
+
+        foreach (var act in new[] { empty, noHero })
+        {
+            var exception = (await act.Should().ThrowAsync<AppValidationException>()).Which;
+            exception.Message.Should().Be("Add a hero section: every website needs one.");
+            exception.Errors!["sections"].Should().Equal("Add a hero section: every website needs one.");
+        }
+        // The saved website keeps its hero
+        (await Context.WebsiteSections.CountAsync(s => s.Type == "hero")).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task ShouldThrowValidationException_WhenThereIsMoreThanOneHeroSection()
+    {
+        var owner = await AppUserFactory.CreateAsync();
+        var @event = await EventFactory.CreateAsync(owner.Id);
+
+        var act = async () => await EventWebsitesService.UpdateAsync(@event.Id, owner.Id,
+            BuildRequest(BuildSection(heading: "First"), BuildSection(type: "countdown", layout: "boxes"), BuildSection(heading: "Second")));
+
+        (await act.Should().ThrowAsync<AppValidationException>()).Which.Errors!["sections"].Should()
+            .Equal("A website can only have one hero section.");
+        (await Context.EventWebsites.CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task ShouldSaveAHiddenHero_WhenItIsTheOnlyHero()
+    {
+        var owner = await AppUserFactory.CreateAsync();
+        var @event = await EventFactory.CreateAsync(owner.Id);
+        var hidden = BuildSection();
+        hidden.IsVisible = false;
+
+        var website = await EventWebsitesService.UpdateAsync(@event.Id, owner.Id, BuildRequest(hidden, BuildSection(type: "countdown", layout: "boxes")));
+
+        website.Sections.Should().HaveCount(2);
     }
 
     [Fact]

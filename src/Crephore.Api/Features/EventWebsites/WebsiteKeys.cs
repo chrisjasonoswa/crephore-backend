@@ -9,6 +9,9 @@ namespace Crephore.Api.Features.EventWebsites;
  */
 public static class WebsiteKeys
 {
+    // Every website has exactly one hero section (its opening), shown or hidden
+    public const string HeroSectionType = "hero";
+
     public static readonly IReadOnlyDictionary<string, IReadOnlySet<string>> SectionLayouts =
         new Dictionary<string, IReadOnlySet<string>>
         {
@@ -21,11 +24,21 @@ public static class WebsiteKeys
             {
                 "boxes", "minimal", "photo", "split", "rings", "flip", "sentence", "days-only", "calendar", "strip",
             },
+            ["message"] = new HashSet<string>
+            {
+                "stacked", "split", "side-photo", "polaroid", "portrait", "card", "overlap", "postcard", "editorial", "inline",
+                "photo-middle",
+            },
+            ["about"] = new HashSet<string>
+            {
+                "split", "photo-row", "mosaic", "divider", "portrait", "scrapbook", "magazine",
+                "timeline-zigzag", "timeline-list", "timeline-cards", "timeline-polaroids", "timeline-compact",
+            },
         };
 
     public static readonly IReadOnlySet<string> Backgrounds = new HashSet<string> { "light", "photo", "primary", "accent" };
 
-    public static readonly IReadOnlySet<string> FontPairings = new HashSet<string> { "serif_classic", "modern_sans", "romantic", "playful" };
+    public static readonly IReadOnlySet<string> FontPairings = new HashSet<string> { "serif_classic", "modern_sans", "romantic", "playful", "script", "luxurious_script" };
 
     public static readonly IReadOnlySet<string> CornerStyles = new HashSet<string> { "sharp", "soft", "round" };
 }

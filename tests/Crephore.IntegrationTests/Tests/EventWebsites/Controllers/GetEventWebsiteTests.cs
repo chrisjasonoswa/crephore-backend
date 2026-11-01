@@ -24,7 +24,7 @@ public class GetEventWebsiteTests(DatabaseFixture fixture)
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         result!.Data!.Theme.FontPairingKey.Should().Be("serif_classic");
-        result.Data.Sections.Should().ContainSingle().Which.Content.GetProperty("title").GetString().Should().Be("Ana & Marco");
+        result.Data.Sections.Should().ContainSingle().Which.Content.GetProperty("heading").GetString().Should().Be("Ana & Marco");
     }
 
     [Fact]

@@ -30,7 +30,7 @@ public class PublishEventWebsiteTests(DatabaseFixture fixture)
         var saved = await Context.EventWebsites.AsNoTracking().SingleAsync();
         var published = EventWebsitesMapper.ReadPublishedContent(saved.PublishedContent)!;
         published.Theme.PrimaryColor.Should().Be("#1E2A44");
-        published.Sections.Should().ContainSingle().Which.Content.GetProperty("title").GetString().Should().Be("Shown");
+        published.Sections.Should().ContainSingle().Which.Content.GetProperty("heading").GetString().Should().Be("Shown");
         // Stored like the API's JSON: enums by name
         saved.PublishedContent.Should().Contain("\"visibility\": \"Always\"");
     }
@@ -54,7 +54,7 @@ public class PublishEventWebsiteTests(DatabaseFixture fixture)
         await Context.SaveChangesAsync();
         (await EventWebsitesService.GetAsync(@event.Id, owner.Id))!.HasUnpublishedChanges.Should().BeFalse();
 
-        website.Sections.Single(s => s.IsVisible).Content = """{ "title": "Changed", "layoutPhotos": [] }""";
+        website.Sections.Single(s => s.IsVisible).Content = """{ "heading": "Changed", "layoutPhotos": [] }""";
         await Context.SaveChangesAsync();
         (await EventWebsitesService.GetAsync(@event.Id, owner.Id))!.HasUnpublishedChanges.Should().BeTrue();
     }

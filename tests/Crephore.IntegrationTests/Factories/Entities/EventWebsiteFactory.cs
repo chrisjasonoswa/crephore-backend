@@ -38,13 +38,13 @@ public class EventWebsiteFactory(AppDbContext context)
         return website;
     }
 
-    public static WebsiteSection BuildSection(string type = "hero", string layout = "split", string title = "Ana & Marco", bool isVisible = true) => new()
+    public static WebsiteSection BuildSection(string type = "hero", string layout = "split", string heading = "Ana & Marco", bool isVisible = true) => new()
     {
         Type = type,
         Layout = layout,
         Background = "light",
         Options = new Dictionary<string, string> { ["photoSide"] = "right" },
-        Content = $$"""{ "title": "{{title}}", "layoutPhotos": [] }""",
+        Content = $$"""{ "heading": "{{heading}}", "layoutPhotos": [] }""",
         ContentVersion = 1,
         IsVisible = isVisible,
     };

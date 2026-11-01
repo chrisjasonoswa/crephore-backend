@@ -27,7 +27,7 @@ public class GetEventWebsiteTests(DatabaseFixture fixture)
         website.Theme.CornerStyle.Should().Be("soft");
         website.Sections.Select(s => s.Type).Should().Equal("hero", "countdown");
         website.Sections[0].Options.Should().Contain("photoSide", "right");
-        website.Sections[0].Content.GetProperty("title").GetString().Should().Be("First");
+        website.Sections[0].Content.GetProperty("heading").GetString().Should().Be("First");
     }
 
     [Fact]

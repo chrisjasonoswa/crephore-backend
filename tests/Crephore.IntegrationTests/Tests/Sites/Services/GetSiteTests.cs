@@ -27,7 +27,7 @@ public class GetSiteTests(DatabaseFixture fixture)
         site.StartsAt.Should().Be(@event.StartsAt);
         site.Timezone.Should().Be("Asia/Manila");
         site.Theme.FontPairingKey.Should().Be("serif_classic");
-        site.Sections.Should().ContainSingle().Which.Content.GetProperty("title").GetString().Should().Be("Welcome");
+        site.Sections.Should().ContainSingle().Which.Content.GetProperty("heading").GetString().Should().Be("Welcome");
     }
 
     [Fact]
@@ -35,13 +35,13 @@ public class GetSiteTests(DatabaseFixture fixture)
     {
         var owner = await AppUserFactory.CreateAsync();
         var @event = await EventFactory.CreateAsync(owner.Id, subdomain: "ana-and-marco");
-        var website = await EventWebsiteFactory.CreateAsync(@event.Id, [EventWebsiteFactory.BuildSection(title: "Published")], published: true);
-        website.Sections.Single().Content = """{ "title": "Saved later", "layoutPhotos": [] }""";
+        var website = await EventWebsiteFactory.CreateAsync(@event.Id, [EventWebsiteFactory.BuildSection(heading: "Published")], published: true);
+        website.Sections.Single().Content = """{ "heading": "Saved later", "layoutPhotos": [] }""";
         await Context.SaveChangesAsync();
 
         var site = await SitesService.GetAsync("ana-and-marco");
 
-        site.Sections.Single().Content.GetProperty("title").GetString().Should().Be("Published");
+        site.Sections.Single().Content.GetProperty("heading").GetString().Should().Be("Published");
     }
 
     [Fact]
