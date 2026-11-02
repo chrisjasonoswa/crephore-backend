@@ -25,27 +25,24 @@ public class UpdateEventTests(DatabaseFixture fixture)
         EndsAt = Start.AddHours(4),
         Timezone = "Asia/Tokyo",
         Subdomain = subdomain,
-        Timeline = ["Welcome", " Dinner "],
     };
 
     [Fact]
-    public async Task ShouldReplaceEveryField_IncludingTheTimeline()
+    public async Task ShouldReplaceEveryField()
     {
         var owner = await AppUserFactory.CreateAsync();
-        var @event = await EventFactory.CreateAsync(owner.Id, "Birthday", timeline: ["Opening"]);
+        var @event = await EventFactory.CreateAsync(owner.Id, "Birthday");
 
         var result = await EventsService.UpdateAsync(@event.Id, owner.Id, BuildRequest("class-2017"));
 
         result.Name.Should().Be("Reunion");
         result.Description.Should().Be("Class of 2017");
-        result.Timeline.Should().Equal("Welcome", "Dinner");
 
         var inDb = await Context.Events.AsNoTracking().SingleAsync(e => e.Id == @event.Id);
         inDb.Subdomain.Should().Be("class-2017");
         inDb.Timezone.Should().Be("Asia/Tokyo");
         // 6:00 PM in Tokyo (UTC+9) is 9:00 AM UTC
         inDb.StartsAt.Should().Be(new DateTimeOffset(2027, 9, 4, 9, 0, 0, TimeSpan.Zero));
-        inDb.Timeline.Should().Equal("Welcome", "Dinner");
     }
 
     [Fact]

@@ -25,7 +25,6 @@ public class CreateEventTests(DatabaseFixture fixture)
         EndsAt = Start.AddHours(8),
         Timezone = "Asia/Manila",
         Subdomain = $"ana-and-marco-{Guid.NewGuid().ToString("N")[..6]}",
-        Timeline = ["Ceremony"],
     };
 
     [Fact]
@@ -42,9 +41,8 @@ public class CreateEventTests(DatabaseFixture fixture)
         body.Should().Contain("\"type\":\"Wedding\"");
         // Not yet filled (no Google Places integration), sent and returned as null
         body.Should().Contain("\"venueLatitude\":null");
-        result!.Data!.Timeline.Should().Equal("Ceremony");
         // Wall-clock time in, UTC + the event's timezone out
-        result.Data.Timezone.Should().Be("Asia/Manila");
+        result!.Data!.Timezone.Should().Be("Asia/Manila");
         result.Data.StartsAt.Should().Be(new DateTimeOffset(2027, 6, 12, 7, 0, 0, TimeSpan.Zero));
     }
 

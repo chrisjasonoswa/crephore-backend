@@ -38,6 +38,11 @@ public static class WebsiteKeys
             {
                 "grid", "entourage", "featured", "cards", "spotlight", "carousel", "staggered", "polaroids", "directory", "credits",
             },
+            ["program"] = new HashSet<string>
+            {
+                "timeline", "list", "cards", "printed", "big-times", "horizontal", "poster", "agenda", "menu-card", "tickets",
+                "table", "note", "vertical", "date-blocks", "photo-cards", "tab-cards",
+            },
         };
 
     public static readonly IReadOnlySet<string> Backgrounds = new HashSet<string> { "light", "photo", "primary", "accent" };

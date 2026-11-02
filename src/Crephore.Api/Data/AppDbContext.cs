@@ -72,11 +72,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.HasIndex(e => e.Subdomain)
                 .IsUnique()
                 .HasDatabaseName(UniqueIndexes.EventSubdomain);
-
-            // JSON array of strings; existing rows get [] (MySQL only allows expression defaults on json)
-            entity.PrimitiveCollection(e => e.Timeline)
-                .HasColumnType("json")
-                .HasDefaultValueSql("(JSON_ARRAY())");
         });
 
         // Event users (a user's access to an event; deleted with the event or the user)

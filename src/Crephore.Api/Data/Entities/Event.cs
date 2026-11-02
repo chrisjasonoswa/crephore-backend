@@ -8,7 +8,7 @@ namespace Crephore.Api.Data.Entities;
 
 /*
  * The actual event, e.g. a birthday. Users reach it through EventUsers (who can see it and what they can do);
- * every query goes through the current user's EventUser row. Its program lives in Timeline.
+ * every query goes through the current user's EventUser row.
  */
 [Table("events")]
 public class Event : IHasCreatedAt
@@ -37,7 +37,7 @@ public class Event : IHasCreatedAt
     public DateTimeOffset StartsAt { get; set; }
     public DateTimeOffset EndsAt { get; set; }
 
-    // The venue's IANA time zone, e.g. "Asia/Manila". The event's and its timeline's times are entered and shown in it.
+    // The venue's IANA time zone, e.g. "Asia/Manila". The event's times are entered and shown in it.
     [MaxLength(64)]
     public string Timezone { get; set; } = null!;
 
@@ -47,9 +47,6 @@ public class Event : IHasCreatedAt
     public string Subdomain { get; set; } = null!;
 
     // Timestamp
-    // The program in order, e.g. ["Opening", "Dinner", "First dance"]; a JSON array of strings
-    public List<string> Timeline { get; set; } = [];
-
     public DateTimeOffset CreatedAt { get; set; }
 
     /* Related Properties */

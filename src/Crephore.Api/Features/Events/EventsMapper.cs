@@ -29,7 +29,6 @@ public static class EventsMapper
             CreatedAt = @event.CreatedAt,
             Access = [.. eventUser.Access],
             EventGroup = eventUser.EventGroup?.ToEventGroupSummaryDto(),
-            Timeline = [.. @event.Timeline],
         };
     }
 }

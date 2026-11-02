@@ -29,11 +29,10 @@ public class CreateEventTests(DatabaseFixture fixture)
         EndsAt = Start.AddHours(8),
         Timezone = "Asia/Manila",
         Subdomain = $"ana-and-marco-{Guid.NewGuid().ToString("N")[..6]}",
-        Timeline = ["Ceremony", "Reception"],
     };
 
     [Fact]
-    public async Task ShouldCreateTheEventWithItsTimelineInOrder_WhenRequestIsValid()
+    public async Task ShouldCreateTheEvent_WhenRequestIsValid()
     {
         var owner = await AppUserFactory.CreateAsync();
         var request = BuildValidRequest();
@@ -45,10 +44,8 @@ public class CreateEventTests(DatabaseFixture fixture)
         result.Type.Should().Be(EventType.Wedding);
         result.VenueLatitude.Should().BeNull();
         result.Access.Should().Equal(EventAccess.Owner);
-        result.Timeline.Should().Equal("Ceremony", "Reception");
 
         var inDb = await Context.Events.AsNoTracking().FirstAsync(e => e.Id == result.Id);
-        inDb.Timeline.Should().Equal("Ceremony", "Reception");
         inDb.CreatedAt.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromMinutes(1));
 
         // The creator is the only user, with Owner access
@@ -109,18 +106,6 @@ public class CreateEventTests(DatabaseFixture fixture)
 
         result.EventGroup!.Id.Should().Be(group.Id);
         result.EventGroup.Name.Should().Be("Family");
-    }
-
-    [Fact]
-    public async Task ShouldCreateTheEventWithoutTimeline_WhenNoneIsGiven()
-    {
-        var owner = await AppUserFactory.CreateAsync();
-        var request = BuildValidRequest();
-        request.Timeline = [];
-
-        var result = await EventsService.CreateAsync(owner.Id, request);
-
-        result.Timeline.Should().BeEmpty();
     }
 
     [Theory]
@@ -184,33 +169,6 @@ public class CreateEventTests(DatabaseFixture fixture)
     }
 
     [Fact]
-    public async Task ShouldTrimTimelineItems()
-    {
-        var owner = await AppUserFactory.CreateAsync();
-        var request = BuildValidRequest();
-        request.Timeline = ["  Opening ", "Dinner"];
-
-        var result = await EventsService.CreateAsync(owner.Id, request);
-
-        result.Timeline.Should().Equal("Opening", "Dinner");
-    }
-
-    [Theory]
-    [InlineData("   ", "Each timeline item must be filled in.")]
-    [InlineData(null, "Each timeline item must be filled in.")]
-    public async Task ShouldThrowValidationException_WhenATimelineItemIsEmpty(string? item, string message)
-    {
-        var owner = await AppUserFactory.CreateAsync();
-        var request = BuildValidRequest();
-        request.Timeline = ["Opening", item!];
-
-        var act = async () => await EventsService.CreateAsync(owner.Id, request);
-
-        (await act.Should().ThrowAsync<AppValidationException>()).Which.Errors!["timeline"].Should().Contain(message);
-        (await Context.Events.AnyAsync()).Should().BeFalse();
-    }
-
-    [Fact]
     public async Task ShouldThrowValidationException_WhenEventGroupBelongsToAnotherUser()
     {
         var owner = await AppUserFactory.CreateAsync();
@@ -257,7 +215,6 @@ public class CreateEventTests(DatabaseFixture fixture)
         var owner = await AppUserFactory.CreateAsync();
         var request = BuildValidRequest();
         request.Timezone = "America/New_York";
-        request.Timeline = [];
         // Clocks jump from 2:00 to 3:00 AM on March 14, 2027
         request.StartsAt = new DateTime(2027, 3, 14, 2, 30, 0);
         request.EndsAt = new DateTime(2027, 3, 14, 6, 0, 0);

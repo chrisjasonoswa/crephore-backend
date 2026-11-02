@@ -16,14 +16,13 @@ public class GetEventTests(DatabaseFixture fixture)
     {
         var (client, user) = await CreateAuthenticatedClientAsync();
         using var _ = client;
-        var @event = await EventFactory.CreateAsync(user.Id, "Birthday", timeline: ["Opening"]);
+        var @event = await EventFactory.CreateAsync(user.Id, "Birthday");
 
         var response = await client.GetAsync($"{ApiRoutes.Events.FullPath}/{@event.Id}");
         var result = await response.Content.ReadFromJsonAsync<ApiResponse<EventDto>>(JsonOptions);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         result!.Data!.Name.Should().Be("Birthday");
-        result.Data.Timeline.Should().Equal("Opening");
     }
 
     [Fact]

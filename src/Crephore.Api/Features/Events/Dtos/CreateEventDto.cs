@@ -53,7 +53,4 @@ public class CreateEventRequestDto
 
     // Optional group (must belong to the same user)
     public int? EventGroupId { get; set; }
-
-    // The event's program in order, e.g. ["Opening", "Dinner"]; items are checked in EventsService
-    public List<string> Timeline { get; set; } = [];
 }

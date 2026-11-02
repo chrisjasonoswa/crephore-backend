@@ -24,7 +24,6 @@ public class UpdateEventTests(DatabaseFixture fixture)
         EndsAt = Start.AddHours(8),
         Timezone = "Asia/Manila",
         Subdomain = subdomain,
-        Timeline = ["Ceremony", "Reception"],
     };
 
     [Fact]
@@ -39,7 +38,6 @@ public class UpdateEventTests(DatabaseFixture fixture)
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         result!.Data!.Name.Should().Be("Ana & Marco");
-        result.Data.Timeline.Should().Equal("Ceremony", "Reception");
     }
 
     [Fact]

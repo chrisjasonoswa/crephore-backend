@@ -13,13 +13,12 @@ public class GetEventTests(DatabaseFixture fixture)
     public async Task ShouldReturnTheEvent_WhenOwnerRequestsIt()
     {
         var owner = await AppUserFactory.CreateAsync();
-        var @event = await EventFactory.CreateAsync(owner.Id, "Birthday", timeline: ["Opening", "Dinner"]);
+        var @event = await EventFactory.CreateAsync(owner.Id, "Birthday");
 
         var result = await EventsService.GetAsync(@event.Id, owner.Id);
 
         result.Name.Should().Be("Birthday");
         result.Subdomain.Should().Be(@event.Subdomain);
-        result.Timeline.Should().Equal("Opening", "Dinner");
         result.EventGroup.Should().BeNull();
         result.Access.Should().Equal(EventAccess.Owner);
     }

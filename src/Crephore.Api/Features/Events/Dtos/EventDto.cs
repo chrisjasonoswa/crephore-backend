@@ -14,7 +14,7 @@ public class EventDto
     public decimal? VenueLatitude { get; set; }
     public decimal? VenueLongitude { get; set; }
     public string? VenueGooglePlaceId { get; set; }
-    // UTC; show them (and the timeline's) in Timezone
+    // UTC; show them in Timezone
     public DateTimeOffset StartsAt { get; set; }
     public DateTimeOffset EndsAt { get; set; }
     public string Timezone { get; set; } = string.Empty;
@@ -26,7 +26,4 @@ public class EventDto
 
     // The current user's own group; null when they have not grouped the event
     public EventGroupSummaryDto? EventGroup { get; set; }
-
-    // The program in order, e.g. ["Opening", "Dinner"]
-    public List<string> Timeline { get; set; } = [];
 }

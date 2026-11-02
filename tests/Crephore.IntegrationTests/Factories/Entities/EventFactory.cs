@@ -14,7 +14,6 @@ public class EventFactory(AppDbContext context)
         int? eventGroupId = null,
         DateTimeOffset? startsAt = null,
         string? subdomain = null,
-        List<string>? timeline = null,
         EventType type = EventType.Birthday
     )
     {
@@ -31,7 +30,6 @@ public class EventFactory(AppDbContext context)
             EndsAt = start.AddHours(6),
             Subdomain = subdomain ?? $"event-{suffix}",
             Timezone = "Asia/Manila",
-            Timeline = timeline ?? [],
         };
 
         // The owner's access, and their group when given

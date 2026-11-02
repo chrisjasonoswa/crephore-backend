@@ -29,7 +29,6 @@ public partial class EventsService(AppDbContext context) : IEventsService
     private static partial Regex SubdomainRegex();
 
     private const string SubdomainTakenMessage = "This website address is already taken.";
-    private const int TimelineItemMaxLength = 150;
     private const string InvalidTimezoneMessage = "The timezone must be an IANA time zone, e.g. \"Asia/Manila\".";
 
     // Every event the user has access to (any access), with their own group
@@ -116,7 +115,7 @@ public partial class EventsService(AppDbContext context) : IEventsService
         return eventUser.ToEventDto();
     }
 
-    // Replaces every field, including the timeline and the user's own group
+    // Replaces every field, including the user's own group
     public async Task<EventDto> UpdateAsync(int eventId, int userId, UpdateEventRequestDto request)
     {
         await _context.RequireEventAccessAsync(eventId, userId, EventAccess.Owner);
@@ -150,7 +149,6 @@ public partial class EventsService(AppDbContext context) : IEventsService
         DateTimeOffset StartsAt,
         DateTimeOffset EndsAt,
         TimeZoneInfo TimeZone,
-        List<string> Timeline,
         EventGroup? Group);
 
     // Throws an AppValidationException with every field error. `eventId` is the event being updated
@@ -177,8 +175,6 @@ public partial class EventsService(AppDbContext context) : IEventsService
                 AddError(errors, "endsAt", "The end must not be before the start.");
         }
 
-        var timeline = NormalizeTimeline(request.Timeline, errors);
-
         if (!errors.ContainsKey("subdomain") &&
             await _context.Events.AnyAsync(e => e.Subdomain == subdomain && (eventId == null || e.Id != eventId)))
             AddError(errors, "subdomain", SubdomainTakenMessage);
@@ -196,7 +192,7 @@ public partial class EventsService(AppDbContext context) : IEventsService
         if (errors.Count > 0)
             throw new AppValidationException(errors);
 
-        return new ValidatedEvent(subdomain, startsAt!.Value, endsAt!.Value, timeZone!, timeline, group);
+        return new ValidatedEvent(subdomain, startsAt!.Value, endsAt!.Value, timeZone!, group);
     }
 
     private static void SetFields(Event @event, CreateEventRequestDto request, ValidatedEvent values)
@@ -213,7 +209,6 @@ public partial class EventsService(AppDbContext context) : IEventsService
         @event.EndsAt = values.EndsAt;
         @event.Timezone = values.TimeZone.Id;
         @event.Subdomain = values.Subdomain;
-        @event.Timeline = values.Timeline;
     }
 
         // A wall-clock time (no offset) that must exist in `timeZone` → UTC; adds a field error otherwise
@@ -235,19 +230,6 @@ public partial class EventsService(AppDbContext context) : IEventsService
             AddError(errors, field, $"The {label} does not exist in this timezone (the clocks skip it).");
 
         return utc;
-    }
-
-    // Trimmed items in order; each must be filled in and at most TimelineItemMaxLength characters
-    private static List<string> NormalizeTimeline(List<string> items, Dictionary<string, List<string>> errors)
-    {
-        var timeline = items.Select(item => item?.Trim() ?? string.Empty).ToList();
-
-        if (timeline.Any(string.IsNullOrEmpty))
-            AddError(errors, "timeline", "Each timeline item must be filled in.");
-        if (timeline.Any(item => item.Length > TimelineItemMaxLength))
-            AddError(errors, "timeline", $"Each timeline item must be {TimelineItemMaxLength} characters or fewer.");
-
-        return timeline;
     }
 
     private static void AddError(Dictionary<string, List<string>> errors, string field, string message)

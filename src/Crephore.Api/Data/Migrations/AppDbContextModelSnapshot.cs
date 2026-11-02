@@ -204,12 +204,6 @@ namespace Crephore.Api.Data.Migrations
                         .HasMaxLength(63)
                         .HasColumnType("varchar(63)");
 
-                    b.PrimitiveCollection<string>("Timeline")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("json")
-                        .HasDefaultValueSql("(JSON_ARRAY())");
-
                     b.Property<string>("Timezone")
                         .IsRequired()
                         .HasMaxLength(64)

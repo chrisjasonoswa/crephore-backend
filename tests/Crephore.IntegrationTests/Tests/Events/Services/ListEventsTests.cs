@@ -9,12 +9,12 @@ public class ListEventsTests(DatabaseFixture fixture)
     : EventsBaseTestClass(fixture)
 {
     [Fact]
-    public async Task ShouldReturnOnlyTheOwnersEvents_WithGroupAndTimelineInOrder()
+    public async Task ShouldReturnOnlyTheOwnersEvents_WithTheirGroup()
     {
         var owner = await AppUserFactory.CreateAsync();
         var otherUser = await AppUserFactory.CreateAsync();
         var group = await EventGroupFactory.CreateAsync(owner.Id, "Family");
-        var birthday = await EventFactory.CreateAsync(owner.Id, "Birthday", eventGroupId: group.Id, timeline: ["Opening", "Dinner", "First dance"]);
+        var birthday = await EventFactory.CreateAsync(owner.Id, "Birthday", eventGroupId: group.Id);
         await EventFactory.CreateAsync(otherUser.Id, "Not mine");
 
         var result = await EventsService.ListAsync(owner.Id, new ListEventsRequestDto());
@@ -23,7 +23,6 @@ public class ListEventsTests(DatabaseFixture fixture)
         var dto = result.Items.Single();
         dto.Id.Should().Be(birthday.Id);
         dto.EventGroup!.Name.Should().Be("Family");
-        dto.Timeline.Should().Equal("Opening", "Dinner", "First dance");
     }
 
     [Fact]

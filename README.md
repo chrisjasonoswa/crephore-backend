@@ -79,10 +79,10 @@ Photos are stored on this machine in `src/Crephore.Api/uploads/` (git-ignored) a
 | POST   | `/api/auth/logout` | Required | Signs out this device only: revokes its refresh tokens (its access token stops working) and clears the cookies. |
 | GET    | `/api/auth/me`     | Required | Returns the signed-in user.                                         |
 | GET    | `/api/events` | Required | Events the user has access to, paged (`page`, `pageSize`, `searchKey`, `sort`, `eventGroupId`). |
-| GET    | `/api/events/{id}` | Required | One event with the user's access, their group, and the timeline. |
-| POST   | `/api/events` | Required | Create an event (the creator gets `Owner` access), optionally in a group, with its timeline items. |
+| GET    | `/api/events/{id}` | Required | One event with the user's access and their group. |
+| POST   | `/api/events` | Required | Create an event (the creator gets `Owner` access), optionally in a group. |
 | DELETE | `/api/events/{id}` | Required | Delete an event (Owner only). |
-| PUT    | `/api/events/{id}` | Required | Edit an event, including its timeline (Owner only). |
+| PUT    | `/api/events/{id}` | Required | Edit an event (Owner only). |
 | GET    | `/api/event-groups` | Required | The user's event groups with their events, paged. |
 | POST   | `/api/event-groups` | Required | Create a group. |
 | PUT    | `/api/event-groups/{id}` | Required | Rename a group. |
