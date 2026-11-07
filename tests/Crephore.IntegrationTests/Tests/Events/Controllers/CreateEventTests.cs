@@ -19,8 +19,6 @@ public class CreateEventTests(DatabaseFixture fixture)
     {
         Name = "Ana & Marco",
         Type = EventType.Wedding,
-        VenueName = "Taal Vista",
-        VenueAddress = "Tagaytay, Philippines",
         StartsAt = Start,
         EndsAt = Start.AddHours(8),
         Timezone = "Asia/Manila",
@@ -39,11 +37,28 @@ public class CreateEventTests(DatabaseFixture fixture)
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         body.Should().Contain("\"type\":\"Wedding\"");
-        // Not yet filled (no Google Places integration), sent and returned as null
-        body.Should().Contain("\"venueLatitude\":null");
+        // The main venue's name: none until the host adds venues
+        body.Should().Contain("\"venueName\":\"\"");
         // Wall-clock time in, UTC + the event's timezone out
         result!.Data!.Timezone.Should().Be("Asia/Manila");
         result.Data.StartsAt.Should().Be(new DateTimeOffset(2027, 6, 12, 7, 0, 0, TimeSpan.Zero));
+    }
+
+    [Fact]
+    public async Task Create_ShouldReturnOkAndTheLifeDatesAsPlainDates_WhenTheEventIsAMemorial()
+    {
+        var (client, _) = await CreateAuthenticatedClientAsync();
+        using var __ = client;
+        var request = BuildValidRequest();
+        request.Type = EventType.Memorial;
+        request.BornOn = new DateOnly(1948, 2, 14);
+
+        var response = await client.PostAsJsonAsync(ApiRoutes.Events.FullPath, request, JsonOptions);
+        var body = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        // As the web app sends and reads them: dates without a time
+        body.Should().Contain("\"bornOn\":\"1948-02-14\"").And.Contain("\"diedOn\":null");
     }
 
     [Fact]
@@ -56,8 +71,6 @@ public class CreateEventTests(DatabaseFixture fixture)
         {
             name = "Ana & Marco",
             type = "Wedding",
-            venueName = "Taal Vista",
-            venueAddress = "Tagaytay, Philippines",
             startsAt = "2027-06-12T15:00:00+08:00",
             endsAt = "2027-06-12T23:00",
             timezone = "Asia/Manila",
@@ -80,7 +93,9 @@ public class CreateEventTests(DatabaseFixture fixture)
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         result!.Message.Should().Be("Some fields are invalid.");
-        result.Errors.Should().ContainKeys("name", "type", "venueName", "venueAddress", "startsAt", "endsAt", "timezone", "subdomain");
+        result.Errors.Should().ContainKeys("name", "type", "startsAt", "timezone", "subdomain");
+        // The end is optional
+        result.Errors.Should().NotContainKey("endsAt");
         result.Errors!["subdomain"].Should().Contain("The website address is required.");
     }
 
@@ -95,8 +110,6 @@ public class CreateEventTests(DatabaseFixture fixture)
         {
             request.Name,
             Type = "Barbecue",
-            request.VenueName,
-            request.VenueAddress,
             request.StartsAt,
             request.EndsAt,
             request.Subdomain,

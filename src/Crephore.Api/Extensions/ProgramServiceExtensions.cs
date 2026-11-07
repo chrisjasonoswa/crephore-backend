@@ -11,6 +11,8 @@ using Crephore.Api.Data.Entities;
 using Crephore.Api.Data.Seeders;
 using Crephore.Api.Features.Auth;
 using Crephore.Api.Features.EventGroups;
+using Crephore.Api.Features.EventPrograms;
+using Crephore.Api.Features.EventVenues;
 using Crephore.Api.Features.Events;
 using Crephore.Api.Features.EventWebsites;
 using Crephore.Api.Features.Media;
@@ -237,6 +239,8 @@ public static class ProgramServiceExtensions
         services.AddScoped<IEventsService, EventsService>();
         services.AddScoped<IEventGroupsService, EventGroupsService>();
         services.AddScoped<IEventWebsitesService, EventWebsitesService>();
+        services.AddScoped<IEventProgramsService, EventProgramsService>();
+        services.AddScoped<IEventVenuesService, EventVenuesService>();
         services.AddScoped<IMediaService, MediaService>();
         services.AddScoped<ISitesService, SitesService>();
 

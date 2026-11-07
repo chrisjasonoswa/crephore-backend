@@ -61,10 +61,13 @@ public class EventWebsitesService(AppDbContext context) : IEventWebsitesService
 
         var theme = request.Theme;
         website.PrimaryColor = theme.PrimaryColor.ToUpperInvariant();
-        website.AccentColor = theme.AccentColor.ToUpperInvariant();
+        website.SecondaryColor = OptionalColor(theme.SecondaryColor);
+        website.AccentColor = OptionalColor(theme.AccentColor);
         website.BackgroundColor = theme.BackgroundColor?.ToUpperInvariant();
         website.FontPairingKey = theme.FontPairingKey;
         website.CornerStyle = theme.CornerStyle;
+        website.MotionIntro = theme.Motion.Intro;
+        website.MotionIntensity = theme.Motion.Intensity;
 
         var keptIds = request.Sections.Where(s => s.Id is not null).Select(s => s.Id!.Value).ToHashSet();
         foreach (var removed in website.Sections.Where(s => !keptIds.Contains(s.Id)).ToList())
@@ -145,6 +148,10 @@ public class EventWebsitesService(AppDbContext context) : IEventWebsitesService
     }
 
     // Helpers
+    // An optional colour: left empty (or blank) is none
+    private static string? OptionalColor(string? color) =>
+        string.IsNullOrWhiteSpace(color) ? null : color.ToUpperInvariant();
+
     private async Task<EventWebsite> FindSavedWebsiteAsync(int eventId, string notFoundMessage) =>
         await _context.EventWebsites
             .Include(w => w.Sections)
@@ -161,6 +168,10 @@ public class EventWebsitesService(AppDbContext context) : IEventWebsitesService
             AddError(errors, "fontPairingKey", "The font pairing is not one Crephore offers.");
         if (!WebsiteKeys.CornerStyles.Contains(request.Theme.CornerStyle))
             AddError(errors, "cornerStyle", "The corner style must be sharp, soft or round.");
+        if (!WebsiteKeys.PageIntros.Contains(request.Theme.Motion.Intro))
+            AddError(errors, "motion.intro", "The intro animation is not one Crephore offers.");
+        if (!WebsiteKeys.MotionIntensities.Contains(request.Theme.Motion.Intensity))
+            AddError(errors, "motion.intensity", "The motion intensity must be subtle, normal or bold.");
 
         var savedIds = website?.Sections.Select(s => s.Id).ToHashSet() ?? [];
         var requestedIds = new HashSet<int>();

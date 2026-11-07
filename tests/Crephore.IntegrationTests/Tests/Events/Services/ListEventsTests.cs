@@ -26,6 +26,19 @@ public class ListEventsTests(DatabaseFixture fixture)
     }
 
     [Fact]
+    public async Task ShouldReturnEachEventsMainVenueName_EmptyForAnEventWithoutVenues()
+    {
+        var owner = await AppUserFactory.CreateAsync();
+        var wedding = await EventFactory.CreateAsync(owner.Id, "Wedding", startsAt: new DateTimeOffset(2027, 1, 1, 0, 0, 0, TimeSpan.Zero));
+        await EventFactory.CreateAsync(owner.Id, "Birthday", startsAt: new DateTimeOffset(2027, 2, 1, 0, 0, 0, TimeSpan.Zero));
+        await EventVenueFactory.CreateAsync(wedding.Id, "Manila Cathedral", "Shangri-La");
+
+        var result = await EventsService.ListAsync(owner.Id, new ListEventsRequestDto());
+
+        result.Items.Select(e => (e.Name, e.VenueName)).Should().Equal(("Wedding", "Manila Cathedral"), ("Birthday", ""));
+    }
+
+    [Fact]
     public async Task ShouldIncludeEventsSharedWithTheUser()
     {
         var owner = await AppUserFactory.CreateAsync();

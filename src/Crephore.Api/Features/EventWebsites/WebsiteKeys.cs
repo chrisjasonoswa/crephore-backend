@@ -6,6 +6,7 @@ namespace Crephore.Api.Features.EventWebsites;
  *   - section types and their layouts: features/sections/section.registry.ts
  *   - backgrounds: features/sections/section.type.ts (SectionBackground)
  *   - font pairings: site-theme/fontPairings.ts; corner styles: site-theme/useSiteTheme.ts (CornerStyle)
+ *   - motion (page intros, intensities): features/site-motion/site-motion.type.ts
  */
 public static class WebsiteKeys
 {
@@ -41,11 +42,11 @@ public static class WebsiteKeys
             ["program"] = new HashSet<string>
             {
                 "timeline", "list", "cards", "printed", "big-times", "horizontal", "poster", "agenda", "menu-card", "tickets",
-                "table", "note", "vertical", "date-blocks", "photo-cards", "tab-cards",
+                "table", "note", "vertical", "date-blocks", "photo-cards",
             },
         };
 
-    public static readonly IReadOnlySet<string> Backgrounds = new HashSet<string> { "light", "photo", "primary", "accent" };
+    public static readonly IReadOnlySet<string> Backgrounds = new HashSet<string> { "light", "photo", "primary", "secondary" };
 
     public static readonly IReadOnlySet<string> FontPairings = new HashSet<string>
     {
@@ -66,4 +67,29 @@ public static class WebsiteKeys
     };
 
     public static readonly IReadOnlySet<string> CornerStyles = new HashSet<string> { "sharp", "soft", "round" };
+
+    // The theme's motion: the intro when the site opens, and how strongly (the intensity scales the intro's speed).
+    // No intro, then the scenes for any event, weddings, parties, business and memorials (20 each).
+    public static readonly IReadOnlySet<string> PageIntros = new HashSet<string>
+    {
+        "none",
+        "shutter", "film-strip", "card-flip", "stamp", "calendar", "pin-drop", "assemble", "color-bands", "orbit",
+        "word-cycle", "paper-tear", "brush", "stardust", "window-light", "frosted-glass", "accordion", "date-roll",
+        "focus-pull", "ribbon-tape", "counter-scroll",
+        "envelope", "signature", "veil", "wax-seal", "ring-box", "golden-frame", "bloom", "meet", "light-leak", "pages",
+        "ribbon", "polaroid", "toast", "doors", "vellum", "foil-press", "ink-wash", "aisle", "lace", "letter",
+        "countdown", "balloon", "candle", "stickers", "gift-box", "disco", "popper", "marquee-lights", "bouncy", "slot",
+        "champagne", "fireworks", "neon", "vinyl", "ticket-tear", "pinata", "photo-booth", "splash", "karaoke", "bunting",
+        "counter", "split-title", "tiles", "kinetic", "blinds", "line-expand", "typewriter", "stack-cards", "scramble",
+        "zoom-through", "badge", "blueprint", "spotlight", "aurora", "stats", "ribbon-cut", "split-flap", "globe", "keynote",
+        "network",
+        "wreath-seal", "candlelight", "dove", "portrait", "dates", "lily", "first-light", "mist", "verse", "lanterns",
+        "feather", "album", "stars", "ripple", "butterfly", "after-rain", "tree", "sampaguita", "paper-boat", "bokeh",
+    };
+
+    public static readonly IReadOnlySet<string> MotionIntensities = new HashSet<string> { "subtle", "normal", "bold" };
+
+    // What a website has until the host picks its motion (also what websites saved before motion existed get)
+    public const string DefaultPageIntro = "shutter";
+    public const string DefaultMotionIntensity = "bold";
 }

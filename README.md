@@ -89,6 +89,8 @@ Photos are stored on this machine in `src/Crephore.Api/uploads/` (git-ignored) a
 | DELETE | `/api/event-groups/{id}` | Required | Delete a group; its events are ungrouped, not deleted. |
 | POST   | `/api/event-groups/{id}/events/{eventId}` | Required | Add an event to the group (moves it from any other group). |
 | DELETE | `/api/event-groups/{id}/events/{eventId}` | Required | Remove an event from the group. |
+| GET    | `/api/events/{eventId}/venues` | Required | The event's venues in order (the first is the main venue). |
+| PUT    | `/api/events/{eventId}/venues` | Required | Save the whole venue list (at most 10): updates venues with an id, adds new ones, deletes the rest and moves their program items to the main venue (Owner only). |
 | GET    | `/api/events/{eventId}/website` | Required | The event's website (theme and sections in order); `data` is null until one is saved. |
 | PUT    | `/api/events/{eventId}/website` | Required | Save the whole website: creates it, updates sections with an id, adds new ones, deletes the rest (Owner only). |
 | DELETE | `/api/events/{eventId}/website` | Required | Delete the website and its sections (Owner only). |

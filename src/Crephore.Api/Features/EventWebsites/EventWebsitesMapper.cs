@@ -64,22 +64,32 @@ public static class EventWebsitesMapper
 
     // Whether guests see something other than what publishing now would store. Compared as JSON values, since MySQL
     // reorders the keys of stored JSON. Hidden sections don't count: guests don't see them either way.
+    // The stored copy is read and written again first, so fields added since it was published (e.g. the theme's
+    // motion, or its fields since they were renamed) get the defaults guests are shown, and fields since removed (e.g.
+    // the motion's section, text and media) are dropped, instead of counting as a change.
     public static bool HasUnpublishedChanges(this EventWebsite website)
     {
         if (website.PublishedContent is null)
             return false;
 
+        var published = JsonSerializer.SerializeToNode(ReadPublishedContent(website.PublishedContent), PublishedContentJson);
         var current = JsonSerializer.SerializeToNode(website.ToPublishedWebsiteDto(), PublishedContentJson);
-        return !JsonNode.DeepEquals(JsonNode.Parse(website.PublishedContent), current);
+        return !JsonNode.DeepEquals(published, current);
     }
 
     private static WebsiteThemeDto ToWebsiteThemeDto(this EventWebsite website) => new()
     {
         PrimaryColor = website.PrimaryColor,
+        SecondaryColor = website.SecondaryColor,
         AccentColor = website.AccentColor,
         BackgroundColor = website.BackgroundColor,
         FontPairingKey = website.FontPairingKey,
         CornerStyle = website.CornerStyle,
+        Motion = new WebsiteMotionDto
+        {
+            Intro = website.MotionIntro,
+            Intensity = website.MotionIntensity,
+        },
     };
 
     public static WebsiteSectionDto ToWebsiteSectionDto(this WebsiteSection section)

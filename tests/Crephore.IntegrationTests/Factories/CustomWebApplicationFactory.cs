@@ -57,6 +57,8 @@ public class CustomWebApplicationFactory(string connectionString) : WebApplicati
             services.AddScoped<EventGroupFactory>();
             services.AddScoped<EventUserFactory>();
             services.AddScoped<EventWebsiteFactory>();
+            services.AddScoped<EventProgramItemFactory>();
+            services.AddScoped<EventVenueFactory>();
         });
 
         builder.UseEnvironment("Development");

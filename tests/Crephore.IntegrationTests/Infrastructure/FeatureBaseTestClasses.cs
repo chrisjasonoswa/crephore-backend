@@ -20,6 +20,12 @@ public abstract class DataBaseTestClass(DatabaseFixture fixture) : BaseTestClass
 [Collection(TestCollections.EventWebsites)]
 public abstract class EventWebsitesBaseTestClass(DatabaseFixture fixture) : BaseTestClass(fixture);
 
+[Collection(TestCollections.EventPrograms)]
+public abstract class EventProgramsBaseTestClass(DatabaseFixture fixture) : BaseTestClass(fixture);
+
+[Collection(TestCollections.EventVenues)]
+public abstract class EventVenuesBaseTestClass(DatabaseFixture fixture) : BaseTestClass(fixture);
+
 [Collection(TestCollections.Media)]
 public abstract class MediaBaseTestClass(DatabaseFixture fixture) : BaseTestClass(fixture);
 

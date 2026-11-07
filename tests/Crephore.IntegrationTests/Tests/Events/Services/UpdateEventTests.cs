@@ -17,10 +17,7 @@ public class UpdateEventTests(DatabaseFixture fixture)
     private static UpdateEventRequestDto BuildRequest(string subdomain) => new()
     {
         Name = "Reunion",
-        Description = "  Class of 2017  ",
         Type = EventType.Other,
-        VenueName = "Park Hyatt",
-        VenueAddress = "Shinjuku, Tokyo",
         StartsAt = Start,
         EndsAt = Start.AddHours(4),
         Timezone = "Asia/Tokyo",
@@ -36,13 +33,62 @@ public class UpdateEventTests(DatabaseFixture fixture)
         var result = await EventsService.UpdateAsync(@event.Id, owner.Id, BuildRequest("class-2017"));
 
         result.Name.Should().Be("Reunion");
-        result.Description.Should().Be("Class of 2017");
 
         var inDb = await Context.Events.AsNoTracking().SingleAsync(e => e.Id == @event.Id);
         inDb.Subdomain.Should().Be("class-2017");
         inDb.Timezone.Should().Be("Asia/Tokyo");
         // 6:00 PM in Tokyo (UTC+9) is 9:00 AM UTC
         inDb.StartsAt.Should().Be(new DateTimeOffset(2027, 9, 4, 9, 0, 0, TimeSpan.Zero));
+    }
+
+    [Fact]
+    public async Task ShouldKeepTheVenues_AndReturnTheMainVenuesName()
+    {
+        var owner = await AppUserFactory.CreateAsync();
+        var @event = await EventFactory.CreateAsync(owner.Id);
+        await EventVenueFactory.CreateAsync(@event.Id, "Park Hyatt", "Golden Gai");
+
+        var result = await EventsService.UpdateAsync(@event.Id, owner.Id, BuildRequest(@event.Subdomain));
+
+        result.VenueName.Should().Be("Park Hyatt");
+        (await Context.EventVenues.CountAsync(v => v.EventId == @event.Id)).Should().Be(2);
+    }
+
+    [Fact]
+    public async Task ShouldSaveAMemorialsLifeDates()
+    {
+        var owner = await AppUserFactory.CreateAsync();
+        var @event = await EventFactory.CreateAsync(owner.Id);
+        var request = BuildRequest(@event.Subdomain);
+        request.Type = EventType.Memorial;
+        request.BornOn = new DateOnly(1948, 2, 14);
+        request.DiedOn = new DateOnly(2026, 10, 3);
+
+        var result = await EventsService.UpdateAsync(@event.Id, owner.Id, request);
+
+        result.BornOn.Should().Be(new DateOnly(1948, 2, 14));
+        result.DiedOn.Should().Be(new DateOnly(2026, 10, 3));
+        var inDb = await Context.Events.AsNoTracking().SingleAsync(e => e.Id == @event.Id);
+        inDb.BornOn.Should().Be(new DateOnly(1948, 2, 14));
+        inDb.DiedOn.Should().Be(new DateOnly(2026, 10, 3));
+    }
+
+    [Fact]
+    public async Task ShouldClearTheLifeDates_WhenTheEventIsNotAMemorial()
+    {
+        var owner = await AppUserFactory.CreateAsync();
+        var @event = await EventFactory.CreateAsync(owner.Id, type: EventType.Memorial);
+        @event.BornOn = new DateOnly(1948, 2, 14);
+        await Context.SaveChangesAsync();
+        var request = BuildRequest(@event.Subdomain);
+        // Sent by mistake with another type: never kept
+        request.DiedOn = new DateOnly(2026, 10, 3);
+
+        await EventsService.UpdateAsync(@event.Id, owner.Id, request);
+
+        var inDb = await Context.Events.AsNoTracking().SingleAsync(e => e.Id == @event.Id);
+        inDb.BornOn.Should().BeNull();
+        inDb.DiedOn.Should().BeNull();
     }
 
     [Fact]
@@ -57,19 +103,31 @@ public class UpdateEventTests(DatabaseFixture fixture)
     }
 
     [Fact]
-    public async Task ShouldSetAndClearTheUsersGroup()
+    public async Task ShouldKeepTheUsersGroup()
     {
         var owner = await AppUserFactory.CreateAsync();
         var group = await EventGroupFactory.CreateAsync(owner.Id, "Family");
+        var @event = await EventFactory.CreateAsync(owner.Id, eventGroupId: group.Id);
+
+        var result = await EventsService.UpdateAsync(@event.Id, owner.Id, BuildRequest(@event.Subdomain));
+
+        // Grouping is done through the groups endpoints, never by saving the event
+        result.EventGroup!.Name.Should().Be("Family");
+        (await Context.EventUsers.AsNoTracking().SingleAsync(eu => eu.EventId == @event.Id)).EventGroupId.Should().Be(group.Id);
+    }
+
+    [Fact]
+    public async Task ShouldSaveAnEventWithoutAnEnd()
+    {
+        var owner = await AppUserFactory.CreateAsync();
         var @event = await EventFactory.CreateAsync(owner.Id);
         var request = BuildRequest(@event.Subdomain);
+        request.EndsAt = null;
 
-        request.EventGroupId = group.Id;
-        (await EventsService.UpdateAsync(@event.Id, owner.Id, request)).EventGroup!.Name.Should().Be("Family");
+        var result = await EventsService.UpdateAsync(@event.Id, owner.Id, request);
 
-        request.EventGroupId = null;
-        (await EventsService.UpdateAsync(@event.Id, owner.Id, request)).EventGroup.Should().BeNull();
-        (await Context.EventUsers.AsNoTracking().SingleAsync(eu => eu.EventId == @event.Id)).EventGroupId.Should().BeNull();
+        result.EndsAt.Should().BeNull();
+        (await Context.Events.AsNoTracking().SingleAsync(e => e.Id == @event.Id)).EndsAt.Should().BeNull();
     }
 
     [Fact]
@@ -84,6 +142,22 @@ public class UpdateEventTests(DatabaseFixture fixture)
         (await act.Should().ThrowAsync<AppValidationException>()).Which.Errors!["subdomain"]
             .Should().Contain("This website address is already taken.");
         (await Context.Events.AsNoTracking().SingleAsync(e => e.Id == @event.Id)).Name.Should().Be("Original");
+    }
+
+    [Fact]
+    public async Task ShouldThrowValidationException_WhenAMemorialsDateOfPassingIsBeforeItsDateOfBirth()
+    {
+        var owner = await AppUserFactory.CreateAsync();
+        var @event = await EventFactory.CreateAsync(owner.Id);
+        var request = BuildRequest(@event.Subdomain);
+        request.Type = EventType.Memorial;
+        request.BornOn = new DateOnly(1948, 2, 14);
+        request.DiedOn = new DateOnly(1948, 2, 13);
+
+        var act = async () => await EventsService.UpdateAsync(@event.Id, owner.Id, request);
+
+        (await act.Should().ThrowAsync<AppValidationException>()).Which.Errors!["diedOn"]
+            .Should().Contain("The date of passing must not be before the date of birth.");
     }
 
     [Fact]

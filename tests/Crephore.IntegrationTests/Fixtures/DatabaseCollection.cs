@@ -10,6 +10,8 @@ public static class TestCollections
     public const string Seeders = "Seeders Database";
     public const string Data = "Data Database";
     public const string EventWebsites = "EventWebsites Database";
+    public const string EventPrograms = "EventPrograms Database";
+    public const string EventVenues = "EventVenues Database";
     public const string Media = "Media Database";
     public const string Sites = "Sites Database";
 }
@@ -31,6 +33,12 @@ public class DataDatabaseCollection : ICollectionFixture<DatabaseFixture>;
 
 [CollectionDefinition(TestCollections.EventWebsites)]
 public class EventWebsitesDatabaseCollection : ICollectionFixture<DatabaseFixture>;
+
+[CollectionDefinition(TestCollections.EventPrograms)]
+public class EventProgramsDatabaseCollection : ICollectionFixture<DatabaseFixture>;
+
+[CollectionDefinition(TestCollections.EventVenues)]
+public class EventVenuesDatabaseCollection : ICollectionFixture<DatabaseFixture>;
 
 [CollectionDefinition(TestCollections.Media)]
 public class MediaDatabaseCollection : ICollectionFixture<DatabaseFixture>;

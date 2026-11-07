@@ -86,6 +86,20 @@ public static class ApiRoutes
         }
     }
 
+    // An event's program (its schedule): api/events/{eventId}/program
+    public static class EventPrograms
+    {
+        public const string Route = $"{Events.Route}/{{eventId:int}}/program";
+        public static string FullPath(int eventId) => $"{Events.FullPath}/{eventId}/program";
+    }
+
+    // An event's venues (where it happens; the first is the main venue): api/events/{eventId}/venues
+    public static class EventVenues
+    {
+        public const string Route = $"{Events.Route}/{{eventId:int}}/venues";
+        public static string FullPath(int eventId) => $"{Events.FullPath}/{eventId}/venues";
+    }
+
     // Published event websites, for guests (no sign-in): api/sites/{subdomain}
     public static class Sites
     {

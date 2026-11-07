@@ -65,16 +65,22 @@ public partial class EventsService(AppDbContext context) : IEventsService
 
         int totalCount = await query.CountAsync();
 
-        var eventUsers = await query
+        var rows = await query
             .Include(eu => eu.EventGroup)
             .Include(eu => eu.Event)
             .Skip(request.Skip)
             .Take(request.PageSize)
+            .Select(eu => new
+            {
+                EventUser = eu,
+                // The main venue's name, in the same query
+                VenueName = eu.Event.Venues.OrderBy(v => v.SortOrder).ThenBy(v => v.Id).Select(v => v.Name).FirstOrDefault(),
+            })
             .ToListAsync();
 
         return new ApiPaginationResponseDto<EventDto>
         {
-            Items = [.. eventUsers.Select(eu => eu.ToEventDto())],
+            Items = [.. rows.Select(row => row.EventUser.ToEventDto(row.VenueName ?? string.Empty))],
             Page = request.Page,
             PageSize = request.PageSize,
             TotalCount = totalCount,
@@ -83,20 +89,26 @@ public partial class EventsService(AppDbContext context) : IEventsService
 
     public async Task<EventDto> GetAsync(int eventId, int userId)
     {
-        var eventUser = await _context.EventUsers
+        var row = await _context.EventUsers
             .AsNoTracking()
             .Include(eu => eu.EventGroup)
             .Include(eu => eu.Event)
-            .FirstOrDefaultAsync(eu => eu.EventId == eventId && eu.UserId == userId)
+            .Where(eu => eu.EventId == eventId && eu.UserId == userId)
+            .Select(eu => new
+            {
+                EventUser = eu,
+                VenueName = eu.Event.Venues.OrderBy(v => v.SortOrder).ThenBy(v => v.Id).Select(v => v.Name).FirstOrDefault(),
+            })
+            .FirstOrDefaultAsync()
             ?? throw new NotFoundException(EventAccessExtensions.EventNotFoundMessage);
 
-        return eventUser.ToEventDto();
+        return row.EventUser.ToEventDto(row.VenueName ?? string.Empty);
     }
 
     // The creator gets Owner access
     public async Task<EventDto> CreateAsync(int userId, CreateEventRequestDto request)
     {
-        var values = await ValidateAsync(userId, request);
+        var (values, group) = await ValidateAsync(userId, request, request.EventGroupId);
 
         var @event = new Event();
         SetFields(@event, request, values);
@@ -106,32 +118,39 @@ public partial class EventsService(AppDbContext context) : IEventsService
             UserId = userId,
             Event = @event,
             Access = [EventAccess.Owner],
-            EventGroup = values.Group,
+            EventGroup = group,
         };
 
         _context.EventUsers.Add(eventUser);
         await _context.SaveChangesOrThrowIfDuplicateAsync(UniqueIndexes.EventSubdomain, "subdomain", SubdomainTakenMessage);
 
-        return eventUser.ToEventDto();
+        // A new event has no venues yet
+        return eventUser.ToEventDto(venueName: string.Empty);
     }
 
-    // Replaces every field, including the user's own group
+    // Replaces every field of the event; the user's group stays as it is (changed through the groups endpoints)
     public async Task<EventDto> UpdateAsync(int eventId, int userId, UpdateEventRequestDto request)
     {
         await _context.RequireEventAccessAsync(eventId, userId, EventAccess.Owner);
-        var values = await ValidateAsync(userId, request, eventId);
+        var (values, _) = await ValidateAsync(userId, request, eventGroupId: null, eventId);
 
         var eventUser = await _context.EventUsers
             .Include(eu => eu.Event)
+            .Include(eu => eu.EventGroup)
             .FirstAsync(eu => eu.EventId == eventId && eu.UserId == userId);
 
         SetFields(eventUser.Event, request, values);
-        eventUser.EventGroupId = values.Group?.Id;
-        eventUser.EventGroup = values.Group;
 
         await _context.SaveChangesOrThrowIfDuplicateAsync(UniqueIndexes.EventSubdomain, "subdomain", SubdomainTakenMessage);
 
-        return eventUser.ToEventDto();
+        var venueName = await _context.EventVenues
+            .Where(v => v.EventId == eventId)
+            .OrderBy(v => v.SortOrder)
+            .ThenBy(v => v.Id)
+            .Select(v => v.Name)
+            .FirstOrDefaultAsync();
+
+        return eventUser.ToEventDto(venueName ?? string.Empty);
     }
 
     public async Task DeleteAsync(int eventId, int userId)
@@ -147,13 +166,13 @@ public partial class EventsService(AppDbContext context) : IEventsService
     private record ValidatedEvent(
         string Subdomain,
         DateTimeOffset StartsAt,
-        DateTimeOffset EndsAt,
-        TimeZoneInfo TimeZone,
-        EventGroup? Group);
+        DateTimeOffset? EndsAt,
+        TimeZoneInfo TimeZone);
 
-    // Throws an AppValidationException with every field error. `eventId` is the event being updated
-    // (its own subdomain is not "taken").
-    private async Task<ValidatedEvent> ValidateAsync(int userId, CreateEventRequestDto request, int? eventId = null)
+    // Throws an AppValidationException with every field error. `eventGroupId` is the group a new event goes into (the
+    // user's own, returned); `eventId` is the event being updated (its own subdomain is not "taken").
+    private async Task<(ValidatedEvent Values, EventGroup? Group)> ValidateAsync(
+        int userId, EventRequestDto request, int? eventGroupId, int? eventId = null)
     {
         var errors = new Dictionary<string, List<string>>();
         var subdomain = request.Subdomain.Trim().ToLowerInvariant();
@@ -170,20 +189,26 @@ public partial class EventsService(AppDbContext context) : IEventsService
         else
         {
             startsAt = ToUtc(request.StartsAt!.Value, timeZone, errors, "startsAt", "start");
-            endsAt = ToUtc(request.EndsAt!.Value, timeZone, errors, "endsAt", "end");
+            // Optional: only checked when given
+            if (request.EndsAt is { } end)
+                endsAt = ToUtc(end, timeZone, errors, "endsAt", "end");
             if (endsAt < startsAt)
                 AddError(errors, "endsAt", "The end must not be before the start.");
         }
+
+        // Only a memorial's dates count (other types save none)
+        if (request.Type == EventType.Memorial && request.DiedOn < request.BornOn)
+            AddError(errors, "diedOn", "The date of passing must not be before the date of birth.");
 
         if (!errors.ContainsKey("subdomain") &&
             await _context.Events.AnyAsync(e => e.Subdomain == subdomain && (eventId == null || e.Id != eventId)))
             AddError(errors, "subdomain", SubdomainTakenMessage);
 
         EventGroup? group = null;
-        if (request.EventGroupId is not null)
+        if (eventGroupId is not null)
         {
             group = await _context.EventGroups
-                .FirstOrDefaultAsync(g => g.Id == request.EventGroupId && g.OwnerId == userId);
+                .FirstOrDefaultAsync(g => g.Id == eventGroupId && g.OwnerId == userId);
 
             if (group is null)
                 AddError(errors, "eventGroupId", "Event group not found.");
@@ -192,23 +217,20 @@ public partial class EventsService(AppDbContext context) : IEventsService
         if (errors.Count > 0)
             throw new AppValidationException(errors);
 
-        return new ValidatedEvent(subdomain, startsAt!.Value, endsAt!.Value, timeZone!, group);
+        return (new ValidatedEvent(subdomain, startsAt!.Value, endsAt, timeZone!), group);
     }
 
-    private static void SetFields(Event @event, CreateEventRequestDto request, ValidatedEvent values)
+    private static void SetFields(Event @event, EventRequestDto request, ValidatedEvent values)
     {
         @event.Name = request.Name.Trim();
-        @event.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
         @event.Type = request.Type!.Value;
-        @event.VenueName = request.VenueName.Trim();
-        @event.VenueAddress = request.VenueAddress.Trim();
-        @event.VenueLatitude = request.VenueLatitude;
-        @event.VenueLongitude = request.VenueLongitude;
-        @event.VenueGooglePlaceId = string.IsNullOrWhiteSpace(request.VenueGooglePlaceId) ? null : request.VenueGooglePlaceId.Trim();
         @event.StartsAt = values.StartsAt;
         @event.EndsAt = values.EndsAt;
         @event.Timezone = values.TimeZone.Id;
         @event.Subdomain = values.Subdomain;
+        var isMemorial = @event.Type == EventType.Memorial;
+        @event.BornOn = isMemorial ? request.BornOn : null;
+        @event.DiedOn = isMemorial ? request.DiedOn : null;
     }
 
         // A wall-clock time (no offset) that must exist in `timeZone` → UTC; adds a field error otherwise

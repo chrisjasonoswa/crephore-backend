@@ -1,8 +1,10 @@
 using Crephore.Api.Common.Exceptions;
+using Crephore.Api.Features.EventWebsites.Dtos;
 using Crephore.IntegrationTests.Factories.Entities;
 using Crephore.IntegrationTests.Fixtures;
 using Crephore.IntegrationTests.Infrastructure;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 
 namespace Crephore.IntegrationTests.Tests.EventWebsites.Services;
 
@@ -28,6 +30,25 @@ public class GetEventWebsiteTests(DatabaseFixture fixture)
         website.Sections.Select(s => s.Type).Should().Equal("hero", "countdown");
         website.Sections[0].Options.Should().Contain("photoSide", "right");
         website.Sections[0].Content.GetProperty("heading").GetString().Should().Be("First");
+    }
+
+    [Fact]
+    public async Task ShouldReturnTheDefaultMotion_WhenTheWebsiteWasSavedBeforeMotionExisted()
+    {
+        var owner = await AppUserFactory.CreateAsync();
+        var @event = await EventFactory.CreateAsync(owner.Id);
+        var website = await EventWebsiteFactory.CreateAsync(@event.Id, motion: new() { Intro = "orbit", Intensity = "bold" });
+        // What the migration gives websites saved before: the columns' defaults
+        await Context.Database.ExecuteSqlInterpolatedAsync(
+            $"""
+            UPDATE event_websites
+            SET MotionIntro = DEFAULT, MotionIntensity = DEFAULT
+            WHERE Id = {website.Id}
+            """);
+
+        var result = await EventWebsitesService.GetAsync(@event.Id, owner.Id);
+
+        result!.Theme.Motion.Should().BeEquivalentTo(new WebsiteMotionDto { Intro = "shutter", Intensity = "bold" });
     }
 
     [Fact]

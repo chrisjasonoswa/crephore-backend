@@ -5,7 +5,9 @@ using Crephore.Api.Data.Entities;
 using Crephore.Api.Data.Seeders;
 using Crephore.Api.Features.Auth;
 using Crephore.Api.Features.EventGroups;
+using Crephore.Api.Features.EventPrograms;
 using Crephore.Api.Features.Events;
+using Crephore.Api.Features.EventVenues;
 using Crephore.Api.Features.EventWebsites;
 using Crephore.Api.Features.Media;
 using Crephore.Api.Features.Sites;
@@ -41,6 +43,8 @@ public abstract class BaseTestClass(DatabaseFixture fixture) : IAsyncLifetime
     protected EventGroupFactory EventGroupFactory { get; private set; } = null!;
     protected EventUserFactory EventUserFactory { get; private set; } = null!;
     protected EventWebsiteFactory EventWebsiteFactory { get; private set; } = null!;
+    protected EventProgramItemFactory EventProgramItemFactory { get; private set; } = null!;
+    protected EventVenueFactory EventVenueFactory { get; private set; } = null!;
 
     // Services can be added here as needed
     // REMINDER: Also resolve services in InitializeAsync() below.
@@ -50,6 +54,8 @@ public abstract class BaseTestClass(DatabaseFixture fixture) : IAsyncLifetime
     protected IEventsService EventsService { get; private set; } = null!;
     protected IEventGroupsService EventGroupsService { get; private set; } = null!;
     protected IEventWebsitesService EventWebsitesService { get; private set; } = null!;
+    protected IEventProgramsService EventProgramsService { get; private set; } = null!;
+    protected IEventVenuesService EventVenuesService { get; private set; } = null!;
     protected IMediaService MediaService { get; private set; } = null!;
     protected ISitesService SitesService { get; private set; } = null!;
     protected IFileStorage FileStorage { get; private set; } = null!;
@@ -69,6 +75,8 @@ public abstract class BaseTestClass(DatabaseFixture fixture) : IAsyncLifetime
         EventGroupFactory = Scope.ServiceProvider.GetRequiredService<EventGroupFactory>();
         EventUserFactory = Scope.ServiceProvider.GetRequiredService<EventUserFactory>();
         EventWebsiteFactory = Scope.ServiceProvider.GetRequiredService<EventWebsiteFactory>();
+        EventProgramItemFactory = Scope.ServiceProvider.GetRequiredService<EventProgramItemFactory>();
+        EventVenueFactory = Scope.ServiceProvider.GetRequiredService<EventVenueFactory>();
 
         //Services, Providers
         AuthService = Scope.ServiceProvider.GetRequiredService<IAuthService>();
@@ -77,6 +85,8 @@ public abstract class BaseTestClass(DatabaseFixture fixture) : IAsyncLifetime
         EventsService = Scope.ServiceProvider.GetRequiredService<IEventsService>();
         EventGroupsService = Scope.ServiceProvider.GetRequiredService<IEventGroupsService>();
         EventWebsitesService = Scope.ServiceProvider.GetRequiredService<IEventWebsitesService>();
+        EventProgramsService = Scope.ServiceProvider.GetRequiredService<IEventProgramsService>();
+        EventVenuesService = Scope.ServiceProvider.GetRequiredService<IEventVenuesService>();
         MediaService = Scope.ServiceProvider.GetRequiredService<IMediaService>();
         SitesService = Scope.ServiceProvider.GetRequiredService<ISitesService>();
         FileStorage = Scope.ServiceProvider.GetRequiredService<IFileStorage>();

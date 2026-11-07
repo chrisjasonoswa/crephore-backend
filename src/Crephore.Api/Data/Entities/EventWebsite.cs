@@ -1,13 +1,14 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Crephore.Api.Data.IEntities;
+using Crephore.Api.Features.EventWebsites;
 
 namespace Crephore.Api.Data.Entities;
 
 /*
  * An event's website: its theme and its sections (WebsiteSection, in page order). At most one per event.
  * Saving changes the website; publishing copies it into PublishedContent, which is what guests see.
- * The subdomain stays on Event. Theme keys (FontPairingKey, CornerStyle) are the web app's keys
+ * The subdomain stays on Event. Theme keys (FontPairingKey, CornerStyle, the Motion* keys) are the web app's keys
  * (see WebsiteKeys); colours are "#RRGGBB".
  */
 [Table("event_websites")]
@@ -18,8 +19,11 @@ public class EventWebsite : IHasTimestamp
     // Theme
     [MaxLength(7)]
     public string PrimaryColor { get; set; } = null!;
+    // Optional: the second brand colour (e.g. section backgrounds) and a small highlight colour (buttons, icons)
     [MaxLength(7)]
-    public string AccentColor { get; set; } = null!;
+    public string? SecondaryColor { get; set; }
+    [MaxLength(7)]
+    public string? AccentColor { get; set; }
     // The light page colour; null = plain white
     [MaxLength(7)]
     public string? BackgroundColor { get; set; }
@@ -27,6 +31,12 @@ public class EventWebsite : IHasTimestamp
     public string FontPairingKey { get; set; } = null!;
     [MaxLength(16)]
     public string CornerStyle { get; set; } = null!;
+
+    // Motion: the intro when the site opens, and how strongly (the intensity scales the intro's speed). Websites saved before motion existed have the defaults (database defaults, see AppDbContext).
+    [MaxLength(32)]
+    public string MotionIntro { get; set; } = WebsiteKeys.DefaultPageIntro;
+    [MaxLength(16)]
+    public string MotionIntensity { get; set; } = WebsiteKeys.DefaultMotionIntensity;
 
     // Publishing: guests see the website as it was when last published (PublishedWebsiteSnapshot as JSON: the theme
     // and the visible sections), not the latest save. Both null while unpublished.

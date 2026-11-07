@@ -4,6 +4,7 @@ using Crephore.Api.Data.Entities;
 
 namespace Crephore.IntegrationTests.Factories.Entities;
 
+// An event (without venues: add them with EventVenueFactory) with its owner's access.
 public class EventFactory(AppDbContext context)
 {
     private readonly AppDbContext _context = context;
@@ -24,8 +25,6 @@ public class EventFactory(AppDbContext context)
         {
             Name = name ?? $"Test Event {suffix}",
             Type = type,
-            VenueName = "Test Venue",
-            VenueAddress = "1 Test Street, Manila",
             StartsAt = start,
             EndsAt = start.AddHours(6),
             Subdomain = subdomain ?? $"event-{suffix}",

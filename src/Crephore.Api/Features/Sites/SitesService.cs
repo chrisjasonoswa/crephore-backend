@@ -1,5 +1,7 @@
 using Crephore.Api.Common.Exceptions;
 using Crephore.Api.Data;
+using Crephore.Api.Features.EventPrograms;
+using Crephore.Api.Features.EventVenues;
 using Crephore.Api.Features.EventWebsites;
 using Crephore.Api.Features.Sites.Dtos;
 using Microsoft.EntityFrameworkCore;
@@ -23,15 +25,23 @@ public class SitesService(AppDbContext context) : ISitesService
 
         var site = await _context.EventWebsites
             .AsNoTracking()
+            // The program and the venues are two collections: one query each instead of their cross product
+            .AsSplitQuery()
             .Where(w => w.Event.Subdomain == key && w.PublishedContent != null)
+            .OrderBy(w => w.Id)
             .Select(w => new
             {
                 w.PublishedContent,
                 PublishedAt = w.PublishedAt!.Value,
                 w.Event.Subdomain,
                 w.Event.Name,
+                w.Event.Type,
+                w.Event.BornOn,
+                w.Event.DiedOn,
                 w.Event.StartsAt,
                 w.Event.Timezone,
+                w.Event.ProgramItems,
+                w.Event.Venues,
             })
             .FirstOrDefaultAsync()
             ?? throw new NotFoundException("Website not found.");
@@ -41,8 +51,14 @@ public class SitesService(AppDbContext context) : ISitesService
         {
             Subdomain = site.Subdomain,
             EventName = site.Name,
+            VenueName = EventVenuesMapper.MainVenueName(site.Venues),
+            EventType = site.Type,
+            BornOn = site.BornOn,
+            DiedOn = site.DiedOn,
             StartsAt = site.StartsAt,
             Timezone = site.Timezone,
+            Program = EventProgramsMapper.ToEventProgramDto(site.ProgramItems),
+            Venues = EventVenuesMapper.ToEventVenueDtos(site.Venues),
             PublishedAt = site.PublishedAt,
             Theme = published.Theme,
             Sections = published.Sections,

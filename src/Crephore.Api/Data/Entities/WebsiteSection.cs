@@ -20,7 +20,7 @@ public class WebsiteSection : IHasTimestamp
     public string Type { get; set; } = null!;
     [MaxLength(32)]
     public string Layout { get; set; } = null!;
-    // "light", "photo", "primary" or "accent"
+    // "light", "photo", "primary" or "secondary"
     [MaxLength(16)]
     public string Background { get; set; } = null!;
 

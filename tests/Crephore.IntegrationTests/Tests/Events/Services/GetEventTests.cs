@@ -24,6 +24,33 @@ public class GetEventTests(DatabaseFixture fixture)
     }
 
     [Fact]
+    public async Task ShouldReturnTheMainVenuesName_WhenTheEventHasVenues()
+    {
+        var owner = await AppUserFactory.CreateAsync();
+        var @event = await EventFactory.CreateAsync(owner.Id);
+        var venues = await EventVenueFactory.CreateAsync(@event.Id, "Manila Cathedral", "Shangri-La");
+        // The host's order, not the order they were added in
+        venues[0].SortOrder = 1;
+        venues[1].SortOrder = 0;
+        await Context.SaveChangesAsync();
+
+        var result = await EventsService.GetAsync(@event.Id, owner.Id);
+
+        result.VenueName.Should().Be("Shangri-La");
+    }
+
+    [Fact]
+    public async Task ShouldReturnAnEmptyVenueName_WhenTheEventHasNoVenues()
+    {
+        var owner = await AppUserFactory.CreateAsync();
+        var @event = await EventFactory.CreateAsync(owner.Id);
+
+        var result = await EventsService.GetAsync(@event.Id, owner.Id);
+
+        result.VenueName.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task ShouldThrowNotFoundException_WhenEventBelongsToAnotherUser()
     {
         var owner = await AppUserFactory.CreateAsync();

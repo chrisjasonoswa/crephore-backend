@@ -18,8 +18,6 @@ public class UpdateEventTests(DatabaseFixture fixture)
     {
         Name = "Ana & Marco",
         Type = EventType.Wedding,
-        VenueName = "Taal Vista",
-        VenueAddress = "Tagaytay, Philippines",
         StartsAt = Start,
         EndsAt = Start.AddHours(8),
         Timezone = "Asia/Manila",

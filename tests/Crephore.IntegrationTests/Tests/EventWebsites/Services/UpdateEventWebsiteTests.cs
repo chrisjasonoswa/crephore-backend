@@ -31,7 +31,8 @@ public class UpdateEventWebsiteTests(DatabaseFixture fixture)
         Theme = new WebsiteThemeDto
         {
             PrimaryColor = "#5e7a63",
-            AccentColor = "#E9DFC8",
+            SecondaryColor = "#e9dfc8",
+            AccentColor = "#B5835a",
             BackgroundColor = "#FFFCF4",
             FontPairingKey = "romantic",
             CornerStyle = "round",
@@ -50,10 +51,13 @@ public class UpdateEventWebsiteTests(DatabaseFixture fixture)
 
         website.Sections.Select(s => s.Content.GetProperty("heading").GetString()).Should().Equal("First", "Second");
         website.Theme.PrimaryColor.Should().Be("#5E7A63");
+        website.Theme.SecondaryColor.Should().Be("#E9DFC8");
+        website.Theme.AccentColor.Should().Be("#B5835A");
 
         var saved = await Context.EventWebsites.AsNoTracking().Include(w => w.Sections).SingleAsync(w => w.EventId == @event.Id);
         saved.FontPairingKey.Should().Be("romantic");
         saved.BackgroundColor.Should().Be("#FFFCF4");
+        new[] { saved.SecondaryColor, saved.AccentColor }.Should().Equal("#E9DFC8", "#B5835A");
         saved.Sections.OrderBy(s => s.SortOrder).Select(s => s.Layout).Should().Equal("split", "boxes");
         saved.Sections.First(s => s.Type == "hero").Options.Should().Contain("photoSide", "left");
     }
@@ -83,6 +87,49 @@ public class UpdateEventWebsiteTests(DatabaseFixture fixture)
         sections[1].Id.Should().Be(kept.Id);
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task ShouldSaveNoSecondaryOrAccentColor_WhenTheyAreLeftOutOrBlank(string? color)
+    {
+        var owner = await AppUserFactory.CreateAsync();
+        var @event = await EventFactory.CreateAsync(owner.Id);
+        await EventWebsiteFactory.CreateAsync(@event.Id);
+        var request = BuildRequest(BuildSection());
+        request.Theme.SecondaryColor = color;
+        request.Theme.AccentColor = color;
+
+        var website = await EventWebsitesService.UpdateAsync(@event.Id, owner.Id, request);
+
+        website.Theme.SecondaryColor.Should().BeNull();
+        website.Theme.AccentColor.Should().BeNull();
+        var saved = await Context.EventWebsites.AsNoTracking().SingleAsync(w => w.EventId == @event.Id);
+        saved.SecondaryColor.Should().BeNull();
+        saved.AccentColor.Should().BeNull();
+        var read = (await EventWebsitesService.GetAsync(@event.Id, owner.Id))!.Theme;
+        read.SecondaryColor.Should().BeNull();
+        read.AccentColor.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("light")]
+    [InlineData("photo")]
+    [InlineData("primary")]
+    [InlineData("secondary")]
+    public async Task ShouldSaveTheSectionsBackground_WhenItIsAKnownBackground(string background)
+    {
+        var owner = await AppUserFactory.CreateAsync();
+        var @event = await EventFactory.CreateAsync(owner.Id);
+        var section = BuildSection();
+        section.Background = background;
+
+        var website = await EventWebsitesService.UpdateAsync(@event.Id, owner.Id, BuildRequest(section));
+
+        website.Sections.Single().Background.Should().Be(background);
+        (await Context.WebsiteSections.AsNoTracking().SingleAsync()).Background.Should().Be(background);
+    }
+
     [Fact]
     public async Task ShouldSaveEachSectionsVisibility_AlwaysWhenLeftOut()
     {
@@ -96,6 +143,63 @@ public class UpdateEventWebsiteTests(DatabaseFixture fixture)
         website.Sections.Select(s => s.Visibility).Should().Equal(SectionVisibility.Always, SectionVisibility.BeforeEvent);
         (await Context.WebsiteSections.AsNoTracking().OrderBy(s => s.SortOrder).Select(s => s.Visibility).ToListAsync())
             .Should().Equal(SectionVisibility.Always, SectionVisibility.BeforeEvent);
+    }
+
+    [Theory]
+    [InlineData("envelope")]
+    [InlineData("ticket-tear")]
+    [InlineData("stats")]
+    [InlineData("wreath-seal")]
+    [InlineData("letter")]
+    [InlineData("bunting")]
+    [InlineData("split-flap")]
+    [InlineData("sampaguita")]
+    [InlineData("shutter")]
+    [InlineData("counter-scroll")]
+    public async Task ShouldSaveASceneIntro_ForEachKindOfEvent(string intro)
+    {
+        var owner = await AppUserFactory.CreateAsync();
+        var @event = await EventFactory.CreateAsync(owner.Id);
+        await EventWebsiteFactory.CreateAsync(@event.Id);
+        var request = BuildRequest(BuildSection());
+        request.Theme.Motion = new WebsiteMotionDto { Intro = intro, Intensity = "normal" };
+
+        var website = await EventWebsitesService.UpdateAsync(@event.Id, owner.Id, request);
+
+        website.Theme.Motion.Intro.Should().Be(intro);
+    }
+
+    [Fact]
+    public async Task ShouldSaveTheMotion_WhenTheThemeHasOne()
+    {
+        var owner = await AppUserFactory.CreateAsync();
+        var @event = await EventFactory.CreateAsync(owner.Id);
+        await EventWebsiteFactory.CreateAsync(@event.Id);
+        var request = BuildRequest(BuildSection());
+        request.Theme.Motion = new WebsiteMotionDto { Intro = "card-flip", Intensity = "bold" };
+        var expected = new { Intro = "card-flip", Intensity = "bold" };
+
+        var website = await EventWebsitesService.UpdateAsync(@event.Id, owner.Id, request);
+
+        website.Theme.Motion.Should().BeEquivalentTo(expected);
+        var saved = await Context.EventWebsites.AsNoTracking().SingleAsync(w => w.EventId == @event.Id);
+        new[] { saved.MotionIntro, saved.MotionIntensity }.Should().Equal("card-flip", "bold");
+        (await EventWebsitesService.GetAsync(@event.Id, owner.Id))!.Theme.Motion.Should().BeEquivalentTo(expected);
+    }
+
+    [Fact]
+    public async Task ShouldSaveTheDefaultMotion_WhenTheThemeLeavesItOut()
+    {
+        var owner = await AppUserFactory.CreateAsync();
+        var @event = await EventFactory.CreateAsync(owner.Id);
+        await EventWebsiteFactory.CreateAsync(@event.Id, motion: new WebsiteMotionDto { Intro = "orbit", Intensity = "subtle" });
+
+        // A theme without motion has the defaults
+        var website = await EventWebsitesService.UpdateAsync(@event.Id, owner.Id, BuildRequest(BuildSection()));
+
+        website.Theme.Motion.Should().BeEquivalentTo(new { Intro = "shutter", Intensity = "bold" });
+        var saved = await Context.EventWebsites.AsNoTracking().SingleAsync(w => w.EventId == @event.Id);
+        new[] { saved.MotionIntro, saved.MotionIntensity }.Should().Equal("shutter", "bold");
     }
 
 
@@ -130,6 +234,33 @@ public class UpdateEventWebsiteTests(DatabaseFixture fixture)
         (await act.Should().ThrowAsync<AppValidationException>()).Which.Errors.Should().ContainKeys("fontPairingKey", "cornerStyle");
     }
 
+    [Theory]
+    [InlineData("intro", "motion.intro", "The intro animation is not one Crephore offers.")]
+    [InlineData("removed intro", "motion.intro", "The intro animation is not one Crephore offers.")]
+    [InlineData("intensity", "motion.intensity", "The motion intensity must be subtle, normal or bold.")]
+    public async Task ShouldThrowValidationException_WhenTheMotionUsesAnUnknownKey(string key, string field, string message)
+    {
+        var owner = await AppUserFactory.CreateAsync();
+        var @event = await EventFactory.CreateAsync(owner.Id);
+        var request = BuildRequest(BuildSection());
+        switch (key)
+        {
+            // A key of a dropped scroll animation, a case variant, ...
+            case "intro": request.Theme.Motion.Intro = "slide-up"; break;
+            // One of the earlier general intros, replaced by the intros for any event
+            case "removed intro": request.Theme.Motion.Intro = "fade"; break;
+            case "intensity": request.Theme.Motion.Intensity = "extreme"; break;
+        }
+
+        var act = async () => await EventWebsitesService.UpdateAsync(@event.Id, owner.Id, request);
+
+        var exception = (await act.Should().ThrowAsync<AppValidationException>()).Which;
+        exception.Errors!.Keys.Should().Equal(field);
+        exception.Errors[field].Should().Equal(message);
+        exception.Message.Should().Be(message);
+        (await Context.EventWebsites.CountAsync()).Should().Be(0);
+    }
+
     [Fact]
     public async Task ShouldThrowValidationException_WhenASectionHasAnUnknownTypeLayoutOrBackground()
     {
@@ -148,6 +279,37 @@ public class UpdateEventWebsiteTests(DatabaseFixture fixture)
             "Section 1 has an unknown section type.",
             "Section 2 has an unknown layout.",
             "Section 3 has an unknown background.");
+        (await Context.EventWebsites.CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task ShouldThrowValidationException_WhenASectionUsesTheRemovedAccentBackground()
+    {
+        var owner = await AppUserFactory.CreateAsync();
+        var @event = await EventFactory.CreateAsync(owner.Id);
+        // Renamed to "secondary"; the accent colour is not a section background
+        var section = BuildSection();
+        section.Background = "accent";
+
+        var act = async () => await EventWebsitesService.UpdateAsync(@event.Id, owner.Id, BuildRequest(section));
+
+        (await act.Should().ThrowAsync<AppValidationException>()).Which.Errors!["sections"].Should()
+            .Equal("Section 1 has an unknown background.");
+        (await Context.EventWebsites.CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task ShouldThrowValidationException_WhenASectionUsesTheRemovedVenueType()
+    {
+        var owner = await AppUserFactory.CreateAsync();
+        var @event = await EventFactory.CreateAsync(owner.Id);
+        // Removed: venue details show in the program sections
+        var venue = BuildSection(type: "venue", layout: "split-map");
+
+        var act = async () => await EventWebsitesService.UpdateAsync(@event.Id, owner.Id, BuildRequest(BuildSection(), venue));
+
+        (await act.Should().ThrowAsync<AppValidationException>()).Which.Errors!["sections"].Should()
+            .Equal("Section 2 has an unknown section type.");
         (await Context.EventWebsites.CountAsync()).Should().Be(0);
     }
 

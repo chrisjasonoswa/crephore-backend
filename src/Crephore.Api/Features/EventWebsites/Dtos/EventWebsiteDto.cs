@@ -23,15 +23,21 @@ public class EventWebsiteDto
 public class WebsiteThemeDto
 {
     private const string HexPattern = "^#[0-9A-Fa-f]{6}$";
+    // Optional colours may also be left empty (or blank), which saves none
+    private const string OptionalHexPattern = @"^(#[0-9A-Fa-f]{6}|\s*)$";
     private const string HexMessage = "The {0} must be a colour like #1E2A44.";
 
     [Required]
     [RegularExpression(HexPattern, ErrorMessage = HexMessage)]
     public string PrimaryColor { get; set; } = string.Empty;
 
-    [Required]
-    [RegularExpression(HexPattern, ErrorMessage = HexMessage)]
-    public string AccentColor { get; set; } = string.Empty;
+    // The second brand colour (e.g. section backgrounds); null = none
+    [RegularExpression(OptionalHexPattern, ErrorMessage = HexMessage)]
+    public string? SecondaryColor { get; set; }
+
+    // A small highlight colour (buttons, icons); null = none
+    [RegularExpression(OptionalHexPattern, ErrorMessage = HexMessage)]
+    public string? AccentColor { get; set; }
 
     // The light page colour; null = plain white
     [RegularExpression(HexPattern, ErrorMessage = HexMessage)]
@@ -46,6 +52,21 @@ public class WebsiteThemeDto
     [Required]
     [MaxLength(16)]
     public string CornerStyle { get; set; } = string.Empty;
+
+    // The defaults when left out, and in websites published before motion existed (or with an earlier shape, such as
+    // { transition, animation } or the scroll animations' section, text and media, whose fields are ignored)
+    [Required]
+    public WebsiteMotionDto Motion { get; set; } = new();
+}
+
+// How the website moves; the same shape as the web app's SiteMotion. Keys from WebsiteKeys, checked when saving.
+public class WebsiteMotionDto
+{
+    // The intro when the site opens, a key from WebsiteKeys.PageIntros
+    public string Intro { get; set; } = WebsiteKeys.DefaultPageIntro;
+
+    // How strongly the intro moves (scales its speed): "subtle", "normal" or "bold"
+    public string Intensity { get; set; } = WebsiteKeys.DefaultMotionIntensity;
 }
 
 public class WebsiteSectionDto

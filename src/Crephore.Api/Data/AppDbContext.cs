@@ -2,6 +2,7 @@ using System.Text.Json;
 using Crephore.Api.Common.Constants;
 using Crephore.Api.Data.Entities;
 using Crephore.Api.Data.IEntities;
+using Crephore.Api.Features.EventWebsites;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -22,6 +23,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<EventGroup> EventGroups { get; set; }
     public DbSet<EventWebsite> EventWebsites { get; set; }
     public DbSet<WebsiteSection> WebsiteSections { get; set; }
+    public DbSet<EventProgramItem> EventProgramItems { get; set; }
+    public DbSet<EventVenue> EventVenues { get; set; }
     public DbSet<Media> Media { get; set; }
 
 
@@ -74,6 +77,36 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .HasDatabaseName(UniqueIndexes.EventSubdomain);
         });
 
+        // Program items (deleted with their event)
+        builder.Entity<EventProgramItem>(entity =>
+        {
+            // The program is read in order
+            entity.HasIndex(i => new { i.EventId, i.SortOrder });
+
+            entity.HasOne(i => i.Event)
+                .WithMany(e => e.ProgramItems)
+                .HasForeignKey(i => i.EventId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Deleting a venue leaves its items without one (the service moves them to the main venue first)
+            entity.HasOne(i => i.Venue)
+                .WithMany(v => v.ProgramItems)
+                .HasForeignKey(i => i.VenueId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // Venues (deleted with their event)
+        builder.Entity<EventVenue>(entity =>
+        {
+            // Read in order; the first is the main venue
+            entity.HasIndex(v => new { v.EventId, v.SortOrder });
+
+            entity.HasOne(v => v.Event)
+                .WithMany(e => e.Venues)
+                .HasForeignKey(v => v.EventId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         // Event users (a user's access to an event; deleted with the event or the user)
         builder.Entity<EventUser>(entity =>
         {
@@ -122,6 +155,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
 
             entity.Property(w => w.PublishedContent)
                 .HasColumnType("json");
+
+            // Websites saved before motion existed get the defaults
+            entity.Property(w => w.MotionIntro)
+                .HasDefaultValue(WebsiteKeys.DefaultPageIntro);
+            entity.Property(w => w.MotionIntensity)
+                .HasDefaultValue(WebsiteKeys.DefaultMotionIntensity);
 
             entity.HasOne(w => w.Event)
                 .WithOne(e => e.Website)

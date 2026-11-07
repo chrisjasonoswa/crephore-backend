@@ -18,13 +18,7 @@ public class CreateEventTests(DatabaseFixture fixture)
     private static CreateEventRequestDto BuildValidRequest() => new()
     {
         Name = "Ana & Marco",
-        Description = "Our wedding",
         Type = EventType.Wedding,
-        VenueName = "Taal Vista",
-        VenueAddress = "Tagaytay, Philippines",
-        VenueLatitude = null,
-        VenueLongitude = null,
-        VenueGooglePlaceId = null,
         StartsAt = Start,
         EndsAt = Start.AddHours(8),
         Timezone = "Asia/Manila",
@@ -42,7 +36,8 @@ public class CreateEventTests(DatabaseFixture fixture)
         result.Id.Should().BeGreaterThan(0);
         result.Name.Should().Be("Ana & Marco");
         result.Type.Should().Be(EventType.Wedding);
-        result.VenueLatitude.Should().BeNull();
+        // A new event has no venues yet
+        result.VenueName.Should().BeEmpty();
         result.Access.Should().Equal(EventAccess.Owner);
 
         var inDb = await Context.Events.AsNoTracking().FirstAsync(e => e.Id == result.Id);

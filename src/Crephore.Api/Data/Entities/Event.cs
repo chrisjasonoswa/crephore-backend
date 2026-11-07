@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Crephore.Api.Common.Constants;
 using Crephore.Api.Data.IEntities;
-using Microsoft.EntityFrameworkCore;
 
 namespace Crephore.Api.Data.Entities;
 
@@ -17,25 +16,17 @@ public class Event : IHasCreatedAt
 
     [MaxLength(150)]
     public string Name { get; set; } = null!;
-    [MaxLength(2000)]
-    public string? Description { get; set; }
     public EventType Type { get; set; }
 
-    // Venue. Latitude, longitude and Google place id are filled once Google Places is integrated.
-    [MaxLength(200)]
-    public string VenueName { get; set; } = null!;
-    [MaxLength(500)]
-    public string VenueAddress { get; set; } = null!;
-    [Precision(9, 6)]
-    public decimal? VenueLatitude { get; set; }
-    [Precision(9, 6)]
-    public decimal? VenueLongitude { get; set; }
-    [MaxLength(255)]
-    public string? VenueGooglePlaceId { get; set; }
+    // A memorial's person: their dates of birth and passing (the hero and the intros show them), each optional. Only
+    // kept for memorials; saving another type clears them.
+    public DateOnly? BornOn { get; set; }
+    public DateOnly? DiedOn { get; set; }
 
-    // Stored in UTC; shown in Timezone (with the timezone named) everywhere, including the event website
+    // Stored in UTC; shown in Timezone (with the timezone named) everywhere, including the event website. EndsAt is
+    // optional: null for an event without a set end.
     public DateTimeOffset StartsAt { get; set; }
-    public DateTimeOffset EndsAt { get; set; }
+    public DateTimeOffset? EndsAt { get; set; }
 
     // The venue's IANA time zone, e.g. "Asia/Manila". The event's times are entered and shown in it.
     [MaxLength(64)]
@@ -54,4 +45,8 @@ public class Event : IHasCreatedAt
     // Null until the host saves a website
     public EventWebsite? Website { get; set; }
     public ICollection<Media> Media { get; set; } = new List<Media>();
+    // The program (schedule), in SortOrder
+    public ICollection<EventProgramItem> ProgramItems { get; set; } = new List<EventProgramItem>();
+    // Where it happens, in SortOrder; the first is the main venue (none until the host adds one)
+    public ICollection<EventVenue> Venues { get; set; } = new List<EventVenue>();
 }
