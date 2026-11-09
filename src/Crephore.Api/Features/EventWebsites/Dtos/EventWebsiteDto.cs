@@ -53,6 +53,13 @@ public class WebsiteThemeDto
     [MaxLength(16)]
     public string CornerStyle { get; set; } = string.Empty;
 
+    // How big headings are set: the hero's and the other sections' ("small", "medium", "large", "extra-large"). Medium
+    // when left out, and in websites published before they existed.
+    [MaxLength(16)]
+    public string HeroHeadingSize { get; set; } = WebsiteKeys.DefaultHeadingSize;
+    [MaxLength(16)]
+    public string HeadingSize { get; set; } = WebsiteKeys.DefaultHeadingSize;
+
     // The defaults when left out, and in websites published before motion existed (or with an earlier shape, such as
     // { transition, animation } or the scroll animations' section, text and media, whose fields are ignored)
     [Required]

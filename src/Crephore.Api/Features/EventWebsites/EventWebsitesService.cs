@@ -66,6 +66,8 @@ public class EventWebsitesService(AppDbContext context) : IEventWebsitesService
         website.BackgroundColor = theme.BackgroundColor?.ToUpperInvariant();
         website.FontPairingKey = theme.FontPairingKey;
         website.CornerStyle = theme.CornerStyle;
+        website.HeroHeadingSize = theme.HeroHeadingSize;
+        website.HeadingSize = theme.HeadingSize;
         website.MotionIntro = theme.Motion.Intro;
         website.MotionIntensity = theme.Motion.Intensity;
 
@@ -168,6 +170,10 @@ public class EventWebsitesService(AppDbContext context) : IEventWebsitesService
             AddError(errors, "fontPairingKey", "The font pairing is not one Crephore offers.");
         if (!WebsiteKeys.CornerStyles.Contains(request.Theme.CornerStyle))
             AddError(errors, "cornerStyle", "The corner style must be sharp, soft or round.");
+        if (!WebsiteKeys.HeadingSizes.Contains(request.Theme.HeroHeadingSize))
+            AddError(errors, "heroHeadingSize", "The hero heading size must be small, medium, large or extra large.");
+        if (!WebsiteKeys.HeadingSizes.Contains(request.Theme.HeadingSize))
+            AddError(errors, "headingSize", "The heading size must be small, medium, large or extra large.");
         if (!WebsiteKeys.PageIntros.Contains(request.Theme.Motion.Intro))
             AddError(errors, "motion.intro", "The intro animation is not one Crephore offers.");
         if (!WebsiteKeys.MotionIntensities.Contains(request.Theme.Motion.Intensity))

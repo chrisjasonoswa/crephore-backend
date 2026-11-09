@@ -85,6 +85,8 @@ public static class EventWebsitesMapper
         BackgroundColor = website.BackgroundColor,
         FontPairingKey = website.FontPairingKey,
         CornerStyle = website.CornerStyle,
+        HeroHeadingSize = website.HeroHeadingSize,
+        HeadingSize = website.HeadingSize,
         Motion = new WebsiteMotionDto
         {
             Intro = website.MotionIntro,

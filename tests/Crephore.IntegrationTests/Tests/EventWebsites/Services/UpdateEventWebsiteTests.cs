@@ -202,6 +202,32 @@ public class UpdateEventWebsiteTests(DatabaseFixture fixture)
         new[] { saved.MotionIntro, saved.MotionIntensity }.Should().Equal("shutter", "bold");
     }
 
+    [Fact]
+    public async Task ShouldSaveTheHeadingSizes_WhenTheThemeHasThem()
+    {
+        var owner = await AppUserFactory.CreateAsync();
+        var @event = await EventFactory.CreateAsync(owner.Id);
+        var request = BuildRequest(BuildSection());
+        request.Theme.HeroHeadingSize = "extra-large";
+        request.Theme.HeadingSize = "small";
+
+        var website = await EventWebsitesService.UpdateAsync(@event.Id, owner.Id, request);
+
+        new[] { website.Theme.HeroHeadingSize, website.Theme.HeadingSize }.Should().Equal("extra-large", "small");
+        var saved = await Context.EventWebsites.AsNoTracking().SingleAsync(w => w.EventId == @event.Id);
+        new[] { saved.HeroHeadingSize, saved.HeadingSize }.Should().Equal("extra-large", "small");
+    }
+
+    [Fact]
+    public async Task ShouldSaveMediumHeadingSizes_WhenTheThemeLeavesThemOut()
+    {
+        var owner = await AppUserFactory.CreateAsync();
+        var @event = await EventFactory.CreateAsync(owner.Id);
+
+        var website = await EventWebsitesService.UpdateAsync(@event.Id, owner.Id, BuildRequest(BuildSection()));
+
+        new[] { website.Theme.HeroHeadingSize, website.Theme.HeadingSize }.Should().Equal("medium", "medium");
+    }
 
     [Fact]
     public async Task ShouldCreateOneWebsite_WhenItIsFirstSavedTwiceAtOnce()
@@ -228,10 +254,12 @@ public class UpdateEventWebsiteTests(DatabaseFixture fixture)
         var request = BuildRequest(BuildSection());
         request.Theme.FontPairingKey = "comic_sans";
         request.Theme.CornerStyle = "wavy";
+        request.Theme.HeroHeadingSize = "huge";
+        request.Theme.HeadingSize = "";
 
         var act = async () => await EventWebsitesService.UpdateAsync(@event.Id, owner.Id, request);
 
-        (await act.Should().ThrowAsync<AppValidationException>()).Which.Errors.Should().ContainKeys("fontPairingKey", "cornerStyle");
+        (await act.Should().ThrowAsync<AppValidationException>()).Which.Errors.Should().ContainKeys("fontPairingKey", "cornerStyle", "heroHeadingSize", "headingSize");
     }
 
     [Theory]

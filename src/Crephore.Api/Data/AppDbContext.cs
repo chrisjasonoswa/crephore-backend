@@ -156,11 +156,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.Property(w => w.PublishedContent)
                 .HasColumnType("json");
 
-            // Websites saved before motion existed get the defaults
+            // Websites saved before motion (or heading sizes) existed get the defaults
             entity.Property(w => w.MotionIntro)
                 .HasDefaultValue(WebsiteKeys.DefaultPageIntro);
             entity.Property(w => w.MotionIntensity)
                 .HasDefaultValue(WebsiteKeys.DefaultMotionIntensity);
+            entity.Property(w => w.HeroHeadingSize)
+                .HasDefaultValue(WebsiteKeys.DefaultHeadingSize);
+            entity.Property(w => w.HeadingSize)
+                .HasDefaultValue(WebsiteKeys.DefaultHeadingSize);
 
             entity.HasOne(w => w.Event)
                 .WithOne(e => e.Website)

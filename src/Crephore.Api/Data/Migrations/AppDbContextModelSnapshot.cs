@@ -426,6 +426,20 @@ namespace Crephore.Api.Data.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("varchar(32)");
 
+                    b.Property<string>("HeadingSize")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("varchar(16)")
+                        .HasDefaultValue("medium");
+
+                    b.Property<string>("HeroHeadingSize")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("varchar(16)")
+                        .HasDefaultValue("medium");
+
                     b.Property<string>("MotionIntensity")
                         .IsRequired()
                         .ValueGeneratedOnAdd()

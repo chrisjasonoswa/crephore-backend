@@ -31,6 +31,12 @@ public class EventWebsite : IHasTimestamp
     public string FontPairingKey { get; set; } = null!;
     [MaxLength(16)]
     public string CornerStyle { get; set; } = null!;
+    // How big the hero's heading and the other sections' headings are set (WebsiteKeys.HeadingSizes). Websites saved
+    // before these existed are medium (database defaults, see AppDbContext).
+    [MaxLength(16)]
+    public string HeroHeadingSize { get; set; } = WebsiteKeys.DefaultHeadingSize;
+    [MaxLength(16)]
+    public string HeadingSize { get; set; } = WebsiteKeys.DefaultHeadingSize;
 
     // Motion: the intro when the site opens, and how strongly (the intensity scales the intro's speed). Websites saved before motion existed have the defaults (database defaults, see AppDbContext).
     [MaxLength(32)]
