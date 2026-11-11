@@ -22,4 +22,9 @@ public class LocalStorageOptions
 
     // Absolute URL of RequestPath as browsers reach it, e.g. "http://localhost:5180/uploads"
     public string PublicBaseUrl { get; set; } = string.Empty;
+
+    // Use the address the request came in on instead of PublicBaseUrl, so a photo uploaded from a phone on the same
+    // Wi-Fi gets an address the phone can load. Only the `lan` launch profile turns it on: the Host header is the
+    // client's to set, so never in hosted environments.
+    public bool PublicBaseUrlFromRequest { get; set; }
 }

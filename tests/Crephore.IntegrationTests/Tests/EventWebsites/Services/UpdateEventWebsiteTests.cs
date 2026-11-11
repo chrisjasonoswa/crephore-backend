@@ -371,8 +371,8 @@ public class UpdateEventWebsiteTests(DatabaseFixture fixture)
         foreach (var act in new[] { empty, noHero })
         {
             var exception = (await act.Should().ThrowAsync<AppValidationException>()).Which;
-            exception.Message.Should().Be("Add a hero section: every website needs one.");
-            exception.Errors!["sections"].Should().Equal("Add a hero section: every website needs one.");
+            exception.Message.Should().Be("Add a cover section: every website needs one.");
+            exception.Errors!["sections"].Should().Equal("Add a cover section: every website needs one.");
         }
         // The saved website keeps its hero
         (await Context.WebsiteSections.CountAsync(s => s.Type == "hero")).Should().Be(1);
@@ -388,7 +388,7 @@ public class UpdateEventWebsiteTests(DatabaseFixture fixture)
             BuildRequest(BuildSection(heading: "First"), BuildSection(type: "countdown", layout: "boxes"), BuildSection(heading: "Second")));
 
         (await act.Should().ThrowAsync<AppValidationException>()).Which.Errors!["sections"].Should()
-            .Equal("A website can only have one hero section.");
+            .Equal("A website can only have one cover section.");
         (await Context.EventWebsites.CountAsync()).Should().Be(0);
     }
 

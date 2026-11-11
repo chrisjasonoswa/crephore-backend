@@ -12,11 +12,15 @@ namespace Crephore.Api.Features.Auth;
 [ApiController]
 public class AuthController(
     IAuthService authService,
-    ICurrentUser currentUser
+    ICurrentUser currentUser,
+    IConfiguration configuration
 ) : ControllerBase
 {
     private readonly IAuthService _authService = authService;
     private readonly ICurrentUser _currentUser = currentUser;
+    // Browsers only keep Secure cookies over https or on localhost; the `lan` launch profile turns this off so a phone
+    // on the same Wi-Fi can sign in over http (Auth:SecureCookies)
+    private readonly bool _secureCookies = configuration.GetValue("Auth:SecureCookies", true);
 
 
     [HttpPost(ApiRoutes.Auth.Signup.RelativeRoute)]
@@ -107,10 +111,10 @@ public class AuthController(
         Response.Cookies.Append(AuthCookies.SessionId, result.SessionId, CookieOptions(result.RefreshTokenExpiresAt));
     }
 
-    private static CookieOptions CookieOptions(DateTimeOffset expires, string path = "/") => new()
+    private CookieOptions CookieOptions(DateTimeOffset expires, string path = "/") => new()
     {
         HttpOnly = true,
-        Secure = true,
+        Secure = _secureCookies,
         SameSite = SameSiteMode.Lax,
         Expires = expires,
         Path = path,

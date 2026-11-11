@@ -32,7 +32,9 @@ public class EventWebsite : IHasTimestamp
     [MaxLength(16)]
     public string CornerStyle { get; set; } = null!;
     // How big the hero's heading and the other sections' headings are set (WebsiteKeys.HeadingSizes). Websites saved
-    // before these existed are medium (database defaults, see AppDbContext).
+    // before these existed are medium (database defaults, see AppDbContext). The web app no longer uses HeroHeadingSize:
+    // the hero (shown to hosts as the "Cover") has its own "Heading size" option in its section options, a saved value
+    // moves there when the website loads, and saving always sends medium.
     [MaxLength(16)]
     public string HeroHeadingSize { get; set; } = WebsiteKeys.DefaultHeadingSize;
     [MaxLength(16)]

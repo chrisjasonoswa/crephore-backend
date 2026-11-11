@@ -51,6 +51,8 @@ HTTP:  http://localhost:5180
 HTTPS: https://localhost:7180
 ```
 
+On a phone on the same Wi-Fi: `dotnet run --project src/Crephore.Api/Crephore.Api.csproj --launch-profile lan` (listens on every address, allows home-network origins, sign-in cookies without `Secure`, upload URLs at the address the request came in on) with the web app's `pnpm dev:lan`, then open `http://<this machine's address>:3000`.
+
 Swagger is enabled in the Development environment at `/swagger`.
 Sample requests are in `src/Crephore.Api/Crephore.Api.http`.
 

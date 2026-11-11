@@ -19,7 +19,7 @@ public static class WebsiteKeys
             ["hero"] = new HashSet<string>
             {
                 "fullscreen", "split", "arch", "editorial", "overlay-card", "collage", "banner", "filmstrip", "polaroid", "framed",
-                "offset-frame",
+                "offset-frame", "cinematic", "billboard", "headline", "corners",
             },
             ["countdown"] = new HashSet<string>
             {
@@ -58,7 +58,7 @@ public static class WebsiteKeys
     {
         // Weddings & engagements
         "serif_classic", "romantic", "timeless", "grand_ballroom", "modern_romance", "editorial", "garden", "vintage", "heirloom",
-        "soft_serif", "marble", "chapel",
+        "soft_serif", "marble", "chapel", "lakeside",
         // Script & calligraphy
         "script", "luxurious_script", "parisian", "love_letter", "calligraphy", "handwritten_vows", "ribbon", "formal_invitation",
         "sunset", "royal_script",

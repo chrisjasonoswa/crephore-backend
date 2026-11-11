@@ -1,3 +1,4 @@
+using System.Net;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Serialization;
@@ -188,18 +189,38 @@ public static class ProgramServiceExtensions
     private static void AddCors(IServiceCollection services, IConfiguration configuration)
     {
         var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+        // Also any http origin on a home-network address (192.168.x.x, 10.x.x.x, 172.16-31.x.x), for testing on a phone
+        // on the same Wi-Fi; only the `lan` launch profile turns it on
+        var allowPrivateNetwork = configuration.GetValue("Cors:AllowPrivateNetwork", false);
 
         services.AddCors(options =>
         {
             options.AddPolicy(FrontendCorsPolicy, policy =>
             {
+                if (allowPrivateNetwork)
+                    policy.SetIsOriginAllowed(origin => allowedOrigins.Contains(origin) || IsPrivateNetworkOrigin(origin));
+                else
+                    policy.WithOrigins(allowedOrigins);
+
                 policy
-                    .WithOrigins(allowedOrigins)
                     .AllowCredentials()
                     .AllowAnyHeader()
                     .AllowAnyMethod();
             });
         });
+    }
+
+
+    private static bool IsPrivateNetworkOrigin(string origin)
+    {
+        if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri) || !IPAddress.TryParse(uri.Host, out var address))
+            return false;
+
+        var bytes = address.GetAddressBytes();
+        return bytes.Length == 4
+            && (bytes[0] == 10
+                || (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31)
+                || (bytes[0] == 192 && bytes[1] == 168));
     }
 
 

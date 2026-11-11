@@ -209,9 +209,9 @@ public class EventWebsitesService(AppDbContext context) : IEventWebsitesService
 
         var heroCount = request.Sections.Count(s => s.Type == WebsiteKeys.HeroSectionType);
         if (heroCount == 0)
-            AddError(errors, "sections", "Add a hero section: every website needs one.");
+            AddError(errors, "sections", "Add a cover section: every website needs one.");
         else if (heroCount > 1)
-            AddError(errors, "sections", "A website can only have one hero section.");
+            AddError(errors, "sections", "A website can only have one cover section.");
 
         if (errors.Count > 0)
             throw new AppValidationException(errors.Values.First().First(), errors);
