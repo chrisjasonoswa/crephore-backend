@@ -98,7 +98,7 @@ Photos are stored on this machine in `src/Crephore.Api/uploads/` (git-ignored) a
 | DELETE | `/api/events/{eventId}/website` | Required | Delete the website and its sections (Owner only). |
 | POST   | `/api/events/{eventId}/website/publish` | Required | Publish the saved website: guests see it as it is now (Owner only). |
 | POST   | `/api/events/{eventId}/website/unpublish` | Required | Stop showing the website to guests; the saved website stays (Owner only). |
-| POST   | `/api/events/{eventId}/media` | Required | Upload a website photo (`multipart/form-data`, `file`; JPG, PNG, WebP or GIF up to 10 MB). Returns its URL (Owner only). |
+| POST   | `/api/events/{eventId}/media` | Required | Upload a website photo (`multipart/form-data`, `file`; JPG, PNG, WebP or GIF up to 10 MB). Returns its id and URL; sections and venues store the id (Owner only). |
 | GET    | `/api/sites/{subdomain}` | None | A published event website for guests (404 when unpublished or unknown). |
 
 All responses use the `{ success, data, message, errors }` envelope.

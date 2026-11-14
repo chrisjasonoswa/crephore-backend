@@ -68,7 +68,7 @@ public class CreateMediaTests(DatabaseFixture fixture)
         var result = await response.Content.ReadFromJsonAsync<ApiResponse<object>>(JsonOptions);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        result!.Message.Should().Be("The photo must be a JPG, PNG, WebP or GIF image.");
+        result!.Message.Should().Be("The photo must be a JPG, PNG, WebP, AVIF or GIF image.");
     }
 
     [Fact]

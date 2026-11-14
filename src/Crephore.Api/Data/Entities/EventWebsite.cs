@@ -39,6 +39,10 @@ public class EventWebsite : IHasTimestamp
     public string HeroHeadingSize { get; set; } = WebsiteKeys.DefaultHeadingSize;
     [MaxLength(16)]
     public string HeadingSize { get; set; } = WebsiteKeys.DefaultHeadingSize;
+    // How every section's eyebrow looks (WebsiteKeys.EyebrowStyles). Websites saved before it existed are plain
+    // (database default, see AppDbContext).
+    [MaxLength(16)]
+    public string EyebrowStyle { get; set; } = WebsiteKeys.DefaultEyebrowStyle;
 
     // Motion: the intro when the site opens, and how strongly (the intensity scales the intro's speed). Websites saved before motion existed have the defaults (database defaults, see AppDbContext).
     [MaxLength(32)]

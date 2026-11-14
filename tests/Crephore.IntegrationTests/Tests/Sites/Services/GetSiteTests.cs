@@ -2,6 +2,7 @@ using Crephore.Api.Common.Constants;
 using Crephore.Api.Common.Exceptions;
 using Crephore.Api.Features.EventWebsites;
 using Crephore.Api.Features.EventWebsites.Dtos;
+using Crephore.IntegrationTests.Factories;
 using Crephore.IntegrationTests.Factories.Entities;
 using Crephore.IntegrationTests.Fixtures;
 using Crephore.IntegrationTests.Infrastructure;
@@ -22,7 +23,7 @@ public class GetSiteTests(DatabaseFixture fixture)
         await EventVenueFactory.CreateAsync(@event.Id, "Manila Cathedral", "Shangri-La");
         await EventWebsiteFactory.CreateAsync(@event.Id,
         [
-            EventWebsiteFactory.BuildSection("hero", "split", "Welcome"),
+            EventWebsiteFactory.BuildSection("hero", "split-framed", "Welcome"),
             EventWebsiteFactory.BuildSection("countdown", "boxes", "Hidden", isVisible: false),
         ], published: true);
 
@@ -33,6 +34,7 @@ public class GetSiteTests(DatabaseFixture fixture)
         site.VenueName.Should().Be("Manila Cathedral");
         site.EventType.Should().Be(EventType.Birthday);
         site.StartsAt.Should().Be(@event.StartsAt);
+        site.EndsAt.Should().Be(@event.EndsAt);
         site.Timezone.Should().Be("Asia/Manila");
         site.Theme.FontPairingKey.Should().Be("serif_classic");
         site.Sections.Should().ContainSingle().Which.Content.GetProperty("heading").GetString().Should().Be("Welcome");
@@ -73,6 +75,31 @@ public class GetSiteTests(DatabaseFixture fixture)
         site.Venues.Select(v => v.Name).Should().Equal("Shangri-La", "Manila Cathedral");
         site.Venues[0].Should().BeEquivalentTo(new { Id = venues[1].Id, Notes = "Parking in the basement.", Address = "2 Test Street, Manila", Latitude = (decimal?)null });
         site.Program.Items.Should().ContainSingle().Which.VenueId.Should().Be(venues[0].Id);
+    }
+
+    [Fact]
+    public async Task ShouldReturnThePhotosOfTheSectionsAndVenuesWithTheirUrls()
+    {
+        var owner = await AppUserFactory.CreateAsync();
+        var @event = await EventFactory.CreateAsync(owner.Id, subdomain: "ana-and-marco");
+        var cover = await MediaFactory.CreatePhotoAsync(@event.Id);
+        var hotel = await MediaFactory.CreatePhotoAsync(@event.Id);
+        var section = EventWebsiteFactory.BuildSection();
+        section.Content = $$"""{ "backgroundPhoto": { "mediaId": {{cover.Id}} }, "layoutPhotos": [] }""";
+        await EventWebsiteFactory.CreateAsync(@event.Id, [section], published: true);
+        var venues = await EventVenueFactory.CreateAsync(@event.Id, "Shangri-La");
+        venues[0].PhotoMediaId = hotel.Id;
+        await Context.SaveChangesAsync();
+
+        var site = await SitesService.GetAsync("ana-and-marco");
+
+        site.Sections.Single().Content.GetProperty("backgroundPhoto").GetProperty("url").GetString()
+            .Should().Be($"{CustomWebApplicationFactory.StoragePublicBaseUrl}/{cover.StorageKey}");
+        site.Venues.Single().Photo.Should().BeEquivalentTo(new
+        {
+            MediaId = hotel.Id,
+            Url = $"{CustomWebApplicationFactory.StoragePublicBaseUrl}/{hotel.StorageKey}",
+        });
     }
 
     [Fact]

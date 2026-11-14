@@ -1,4 +1,5 @@
 using Crephore.Api.Common.Exceptions;
+using Crephore.IntegrationTests.Factories;
 using Crephore.IntegrationTests.Fixtures;
 using Crephore.IntegrationTests.Infrastructure;
 using FluentAssertions;
@@ -20,6 +21,8 @@ public class GetEventVenuesTests(DatabaseFixture fixture)
         venues[1].GoogleMapsUrl = "https://maps.app.goo.gl/abc";
         venues[1].Latitude = 14.581234m;
         venues[1].Longitude = 121.056789m;
+        var photo = await MediaFactory.CreatePhotoAsync(@event.Id);
+        venues[1].PhotoMediaId = photo.Id;
         await Context.SaveChangesAsync();
 
         var result = await EventVenuesService.GetAsync(@event.Id, owner.Id);
@@ -34,9 +37,11 @@ public class GetEventVenuesTests(DatabaseFixture fixture)
             AppleMapsUrl = (string?)null,
             Latitude = (decimal?)14.581234m,
             Longitude = (decimal?)121.056789m,
-            PhotoUrl = (string?)null,
+            // Its URL comes from the storage
+            Photo = new { MediaId = photo.Id, Url = $"{CustomWebApplicationFactory.StoragePublicBaseUrl}/{photo.StorageKey}" },
             Notes = (string?)null,
         });
+        result[1].Photo.Should().BeNull();
     }
 
     [Fact]

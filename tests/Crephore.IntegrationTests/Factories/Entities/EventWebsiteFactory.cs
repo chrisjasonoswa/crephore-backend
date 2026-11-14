@@ -81,7 +81,7 @@ public class EventWebsiteFactory(AppDbContext context)
         return content.ToJsonString();
     }
 
-    public static WebsiteSection BuildSection(string type = "hero", string layout = "split", string heading = "Ana & Marco", bool isVisible = true) => new()
+    public static WebsiteSection BuildSection(string type = "hero", string layout = "split-framed", string heading = "Ana & Marco", bool isVisible = true) => new()
     {
         Type = type,
         Layout = layout,

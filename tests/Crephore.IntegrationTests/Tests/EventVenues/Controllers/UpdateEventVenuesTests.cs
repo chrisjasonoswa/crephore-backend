@@ -25,7 +25,7 @@ public class UpdateEventVenuesTests(DatabaseFixture fixture)
                 appleMapsUrl = (string?)null,
                 latitude = (decimal?)14.591500m,
                 longitude = (decimal?)120.973600m,
-                photoUrl = (string?)null,
+                photo = (object?)null,
                 notes = (string?)"Enter through the side gate.",
             },
         },
@@ -50,7 +50,7 @@ public class UpdateEventVenuesTests(DatabaseFixture fixture)
             GoogleMapsUrl = "https://maps.app.goo.gl/AbCdEf123",
             Latitude = (decimal?)14.5915m,
             Longitude = (decimal?)120.9736m,
-            PhotoUrl = (string?)null,
+            Photo = (object?)null,
             Notes = "Enter through the side gate.",
         });
     }

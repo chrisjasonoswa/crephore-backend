@@ -60,6 +60,11 @@ public class WebsiteThemeDto
     [MaxLength(16)]
     public string HeadingSize { get; set; } = WebsiteKeys.DefaultHeadingSize;
 
+    // How every section's eyebrow looks: "plain" or "boxed". Plain when left out, and in websites published before it
+    // existed.
+    [MaxLength(16)]
+    public string EyebrowStyle { get; set; } = WebsiteKeys.DefaultEyebrowStyle;
+
     // The defaults when left out, and in websites published before motion existed (or with an earlier shape, such as
     // { transition, animation } or the scroll animations' section, text and media, whose fields are ignored)
     [Required]

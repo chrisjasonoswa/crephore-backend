@@ -20,6 +20,8 @@ public class SiteDto
     public DateOnly? DiedOn { get; set; }
     // The event's start (UTC) and timezone, live from the event (e.g. the countdown's target)
     public DateTimeOffset StartsAt { get; set; }
+    // The event's end (UTC), null without a set end (the countdown's "Save the date" adds it to a calendar)
+    public DateTimeOffset? EndsAt { get; set; }
     public string Timezone { get; set; } = string.Empty;
     // The event's program, live from the event (the program sections show it)
     public EventProgramDto Program { get; set; } = new();

@@ -21,7 +21,7 @@ public class PublishEventWebsiteTests(DatabaseFixture fixture)
         var @event = await EventFactory.CreateAsync(owner.Id);
         await EventWebsiteFactory.CreateAsync(@event.Id,
         [
-            EventWebsiteFactory.BuildSection("hero", "split", "Shown"),
+            EventWebsiteFactory.BuildSection("hero", "split-framed", "Shown"),
             EventWebsiteFactory.BuildSection("countdown", "boxes", "Hidden", isVisible: false),
         ], motion: new() { Intro = "card-flip", Intensity = "bold" });
 
@@ -47,7 +47,7 @@ public class PublishEventWebsiteTests(DatabaseFixture fixture)
         var @event = await EventFactory.CreateAsync(owner.Id);
         var website = await EventWebsiteFactory.CreateAsync(@event.Id,
         [
-            EventWebsiteFactory.BuildSection("hero", "split", "Shown"),
+            EventWebsiteFactory.BuildSection("hero", "split-framed", "Shown"),
             EventWebsiteFactory.BuildSection("countdown", "boxes", "Hidden", isVisible: false),
         ], published: true);
 

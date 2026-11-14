@@ -105,6 +105,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .WithMany(e => e.Venues)
                 .HasForeignKey(v => v.EventId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(v => v.PhotoMedia)
+                .WithMany()
+                .HasForeignKey(v => v.PhotoMediaId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         // Event users (a user's access to an event; deleted with the event or the user)
@@ -165,6 +170,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .HasDefaultValue(WebsiteKeys.DefaultHeadingSize);
             entity.Property(w => w.HeadingSize)
                 .HasDefaultValue(WebsiteKeys.DefaultHeadingSize);
+            entity.Property(w => w.EyebrowStyle)
+                .HasDefaultValue(WebsiteKeys.DefaultEyebrowStyle);
 
             entity.HasOne(w => w.Event)
                 .WithOne(e => e.Website)

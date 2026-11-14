@@ -1,3 +1,5 @@
+using Crephore.Api.Features.Media.Dtos;
+
 namespace Crephore.Api.Features.EventVenues.Dtos;
 
 // One of an event's venues. Lists of them are in the host's order; the first is the main venue. Optional fields are
@@ -12,7 +14,8 @@ public class EventVenueDto
     // The pin: both or neither
     public decimal? Latitude { get; set; }
     public decimal? Longitude { get; set; }
-    public string? PhotoUrl { get; set; }
+    // Its photo with its URL; null without one
+    public MediaReferenceDto? Photo { get; set; }
     // Free text for guests, e.g. directions and parking
     public string? Notes { get; set; }
 }

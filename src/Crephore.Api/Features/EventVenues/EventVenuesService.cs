@@ -4,6 +4,7 @@ using Crephore.Api.Common.Exceptions;
 using Crephore.Api.Data;
 using Crephore.Api.Data.Entities;
 using Crephore.Api.Features.EventVenues.Dtos;
+using Crephore.Api.Features.Media;
 using Microsoft.EntityFrameworkCore;
 
 namespace Crephore.Api.Features.EventVenues;
@@ -14,9 +15,10 @@ public interface IEventVenuesService
     Task<List<EventVenueDto>> UpdateAsync(int eventId, int userId, UpdateEventVenuesRequestDto request);
 }
 
-public class EventVenuesService(AppDbContext context) : IEventVenuesService
+public class EventVenuesService(AppDbContext context, IMediaService mediaService) : IEventVenuesService
 {
     private readonly AppDbContext _context = context;
+    private readonly IMediaService _mediaService = mediaService;
 
     public const int MaxVenues = 10;
     public const int NameMaxLength = 200;
@@ -38,7 +40,8 @@ public class EventVenuesService(AppDbContext context) : IEventVenuesService
             .Where(v => v.EventId == eventId)
             .ToListAsync();
 
-        return EventVenuesMapper.ToEventVenueDtos(venues);
+        var mediaUrls = await _mediaService.GetUrlsAsync(eventId, EventVenuesMapper.PhotoMediaIds(venues));
+        return EventVenuesMapper.ToEventVenueDtos(venues, mediaUrls);
     }
 
     // Replaces the venues: ones with an id are updated, new ones added, and saved ones left out deleted; their order is
@@ -52,7 +55,12 @@ public class EventVenuesService(AppDbContext context) : IEventVenuesService
             .Where(v => v.EventId == eventId)
             .ToListAsync();
 
-        var values = Validate(request, savedVenues);
+        // The photos must be the event's media; their URLs go in the response
+        var mediaUrls = await _mediaService.GetUrlsAsync(eventId, request.Venues
+            .Where(v => v.Photo is not null)
+            .Select(v => v.Photo!.MediaId));
+
+        var values = Validate(request, savedVenues, mediaUrls);
 
         await using var transaction = await _context.Database.BeginTransactionAsync();
 
@@ -76,7 +84,7 @@ public class EventVenuesService(AppDbContext context) : IEventVenuesService
             venue.AppleMapsUrl = value.AppleMapsUrl;
             venue.Latitude = value.Latitude;
             venue.Longitude = value.Longitude;
-            venue.PhotoUrl = value.PhotoUrl;
+            venue.PhotoMediaId = value.PhotoMediaId;
             venue.Notes = value.Notes;
             venue.SortOrder = index;
             venues.Add(venue);
@@ -105,7 +113,7 @@ public class EventVenuesService(AppDbContext context) : IEventVenuesService
 
         await transaction.CommitAsync();
 
-        return EventVenuesMapper.ToEventVenueDtos(venues);
+        return EventVenuesMapper.ToEventVenueDtos(venues, mediaUrls);
     }
 
     // Helpers
@@ -117,12 +125,14 @@ public class EventVenuesService(AppDbContext context) : IEventVenuesService
         string? AppleMapsUrl,
         decimal? Latitude,
         decimal? Longitude,
-        string? PhotoUrl,
+        int? PhotoMediaId,
         string? Notes);
 
     // Throws an AppValidationException with every error, keyed by the venue's position ("venues[1].name"). Returns
     // each venue's values: text trimmed, optional text left blank as null.
-    private static List<ValidatedVenue> Validate(UpdateEventVenuesRequestDto request, List<EventVenue> savedVenues)
+    // `mediaUrls` holds the event's media among the photos' ids.
+    private static List<ValidatedVenue> Validate(UpdateEventVenuesRequestDto request, List<EventVenue> savedVenues,
+        IReadOnlyDictionary<int, string> mediaUrls)
     {
         if (request.Venues.Count > MaxVenues)
             throw new AppValidationException(new Dictionary<string, List<string>>
@@ -174,17 +184,15 @@ public class EventVenuesService(AppDbContext context) : IEventVenuesService
             if (latitude is null != longitude is null)
                 AddError(errors, $"{key}.latitude", "Latitude and longitude go together.");
 
-            var photoUrl = Optional(item.PhotoUrl);
-            if (photoUrl is not null && !IsHttpLink(photoUrl))
-                AddError(errors, $"{key}.photoUrl", "Photo must be a link.");
-            else
-                CheckLength(photoUrl, UrlMaxLength, $"{key}.photoUrl", "Photo", errors);
+            var photoMediaId = item.Photo?.MediaId;
+            if (photoMediaId is { } mediaId && !mediaUrls.ContainsKey(mediaId))
+                AddError(errors, $"{key}.photo", "Photo is no longer available. Upload it again.");
 
             var notes = Optional(item.Notes);
             CheckLength(notes, NotesMaxLength, $"{key}.notes", "Notes", errors);
 
             values.Add(new ValidatedVenue(name ?? string.Empty, address, googleMapsUrl, appleMapsUrl, latitude, longitude,
-                photoUrl, notes));
+                photoMediaId, notes));
         }
 
         if (errors.Count > 0)
@@ -202,11 +210,6 @@ public class EventVenuesService(AppDbContext context) : IEventVenuesService
         Uri.TryCreate(value, UriKind.Absolute, out var uri) &&
         uri.Scheme == Uri.UriSchemeHttps &&
         hosts.Any(host => uri.Host == host || uri.Host.EndsWith($".{host}", StringComparison.Ordinal));
-
-    // An absolute http(s) link, e.g. an uploaded photo's URL
-    private static bool IsHttpLink(string value) =>
-        Uri.TryCreate(value, UriKind.Absolute, out var uri) &&
-        (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp);
 
     private static void CheckLength(string? value, int maxLength, string key, string label, Dictionary<string, List<string>> errors)
     {

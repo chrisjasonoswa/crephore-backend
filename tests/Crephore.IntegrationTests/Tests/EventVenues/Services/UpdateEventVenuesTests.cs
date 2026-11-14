@@ -1,5 +1,7 @@
 using Crephore.Api.Common.Exceptions;
 using Crephore.Api.Features.EventVenues.Dtos;
+using Crephore.Api.Features.Media.Dtos;
+using Crephore.IntegrationTests.Factories;
 using Crephore.IntegrationTests.Fixtures;
 using Crephore.IntegrationTests.Infrastructure;
 using FluentAssertions;
@@ -33,6 +35,7 @@ public class UpdateEventVenuesTests(DatabaseFixture fixture)
     {
         var owner = await AppUserFactory.CreateAsync();
         var @event = await EventFactory.CreateAsync(owner.Id);
+        var photo = await MediaFactory.CreatePhotoAsync(@event.Id);
         var hotel = new UpdateEventVenueItemDto
         {
             Name = "  Shangri-La  ",
@@ -42,7 +45,8 @@ public class UpdateEventVenuesTests(DatabaseFixture fixture)
             // Stored with 6 decimals
             Latitude = 14.5512345678m,
             Longitude = 121.0512344m,
-            PhotoUrl = "http://localhost:5180/uploads/events/1/hotel.jpg",
+            // The URL a client sends back is ignored
+            Photo = new MediaReferenceDto { MediaId = photo.Id, Url = "https://elsewhere.example/hotel.jpg" },
             Notes = "  Take the main entrance.\nParking in the basement, free for guests.  ",
         };
         var church = BuildVenue();
@@ -64,15 +68,21 @@ public class UpdateEventVenuesTests(DatabaseFixture fixture)
             AppleMapsUrl = "https://maps.apple.com/?ll=14.55,121.05",
             Latitude = (decimal?)14.551235m,
             Longitude = (decimal?)121.051234m,
-            PhotoUrl = "http://localhost:5180/uploads/events/1/hotel.jpg",
+            PhotoMediaId = (int?)photo.Id,
             Notes = "Take the main entrance.\nParking in the basement, free for guests.",
         });
         saved[1].Should().BeEquivalentTo(new
         {
             Address = (string?)null, GoogleMapsUrl = (string?)null, Latitude = (decimal?)null, Notes = (string?)null,
         });
-        // Returned as saved
+        // Returned as saved, the photo with its URL from the storage
         result[0].Should().BeEquivalentTo(saved[0], options => options.ExcludingMissingMembers());
+        result[0].Photo.Should().BeEquivalentTo(new MediaReferenceDto
+        {
+            MediaId = photo.Id,
+            Url = $"{CustomWebApplicationFactory.StoragePublicBaseUrl}/{photo.StorageKey}",
+        });
+        result[1].Photo.Should().BeNull();
     }
 
     [Fact]
@@ -204,7 +214,6 @@ public class UpdateEventVenuesTests(DatabaseFixture fixture)
             Notes = new string('a', 1001),
             GoogleMapsUrl = $"https://www.google.com/maps/{new string('a', 480)}",
             AppleMapsUrl = $"https://maps.apple.com/?q={new string('a', 480)}",
-            PhotoUrl = $"https://cdn.crephore.com/{new string('a', 480)}.jpg",
         };
 
         var errors = await SaveInvalidAsync(@event.Id, owner.Id, BuildVenue(), noName, tooLong);
@@ -217,7 +226,6 @@ public class UpdateEventVenuesTests(DatabaseFixture fixture)
             ["venues[2].notes"] = ["Notes must be 1000 characters or fewer."],
             ["venues[2].googleMapsUrl"] = ["Google Maps link must be 500 characters or fewer."],
             ["venues[2].appleMapsUrl"] = ["Apple Maps link must be 500 characters or fewer."],
-            ["venues[2].photoUrl"] = ["Photo must be 500 characters or fewer."],
         });
         (await Context.EventVenues.CountAsync()).Should().Be(0);
     }
@@ -264,22 +272,24 @@ public class UpdateEventVenuesTests(DatabaseFixture fixture)
         });
     }
 
-    [Theory]
-    [InlineData("hotel.jpg")]
-    [InlineData("/uploads/events/1/hotel.jpg")]
-    [InlineData("ftp://example.com/hotel.jpg")]
-    public async Task ShouldThrowValidationError_WhenThePhotoIsNotALink(string url)
+    [Fact]
+    public async Task ShouldThrowValidationError_WhenThePhotoIsNotOneOfTheEventsMedia()
     {
         var owner = await AppUserFactory.CreateAsync();
         var @event = await EventFactory.CreateAsync(owner.Id);
-        var venue = BuildVenue();
-        venue.PhotoUrl = url;
+        var otherEvent = await EventFactory.CreateAsync(owner.Id);
+        var otherPhoto = await MediaFactory.CreatePhotoAsync(otherEvent.Id);
+        var otherEventsPhoto = BuildVenue();
+        otherEventsPhoto.Photo = new MediaReferenceDto { MediaId = otherPhoto.Id };
+        var unknownPhoto = BuildVenue("Casa Roces");
+        unknownPhoto.Photo = new MediaReferenceDto { MediaId = otherPhoto.Id + 1000 };
 
-        var errors = await SaveInvalidAsync(@event.Id, owner.Id, venue);
+        var errors = await SaveInvalidAsync(@event.Id, owner.Id, otherEventsPhoto, unknownPhoto);
 
         errors.Should().BeEquivalentTo(new Dictionary<string, List<string>>
         {
-            ["venues[0].photoUrl"] = ["Photo must be a link."],
+            ["venues[0].photo"] = ["Photo is no longer available. Upload it again."],
+            ["venues[1].photo"] = ["Photo is no longer available. Upload it again."],
         });
     }
 

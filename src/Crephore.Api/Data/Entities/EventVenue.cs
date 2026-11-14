@@ -35,9 +35,6 @@ public class EventVenue : IHasTimestamp
     [Precision(9, 6)]
     public decimal? Longitude { get; set; }
 
-    // An uploaded photo's URL (POST api/events/{eventId}/media)
-    [MaxLength(500)]
-    public string? PhotoUrl { get; set; }
     // Free text for guests, e.g. directions and parking
     [MaxLength(1000)]
     public string? Notes { get; set; }
@@ -49,6 +46,10 @@ public class EventVenue : IHasTimestamp
     /* Related Properties */
     public int EventId { get; set; }
     public Event Event { get; set; } = null!;
+
+    // Its photo: one of the event's media (POST api/events/{eventId}/media); its URL comes from the storage
+    public int? PhotoMediaId { get; set; }
+    public Media? PhotoMedia { get; set; }
 
     // The program items held here (cleared when the venue is deleted)
     public ICollection<EventProgramItem> ProgramItems { get; set; } = new List<EventProgramItem>();

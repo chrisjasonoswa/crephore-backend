@@ -45,6 +45,7 @@ public abstract class BaseTestClass(DatabaseFixture fixture) : IAsyncLifetime
     protected EventWebsiteFactory EventWebsiteFactory { get; private set; } = null!;
     protected EventProgramItemFactory EventProgramItemFactory { get; private set; } = null!;
     protected EventVenueFactory EventVenueFactory { get; private set; } = null!;
+    protected MediaFactory MediaFactory { get; private set; } = null!;
 
     // Services can be added here as needed
     // REMINDER: Also resolve services in InitializeAsync() below.
@@ -77,6 +78,7 @@ public abstract class BaseTestClass(DatabaseFixture fixture) : IAsyncLifetime
         EventWebsiteFactory = Scope.ServiceProvider.GetRequiredService<EventWebsiteFactory>();
         EventProgramItemFactory = Scope.ServiceProvider.GetRequiredService<EventProgramItemFactory>();
         EventVenueFactory = Scope.ServiceProvider.GetRequiredService<EventVenueFactory>();
+        MediaFactory = Scope.ServiceProvider.GetRequiredService<MediaFactory>();
 
         //Services, Providers
         AuthService = Scope.ServiceProvider.GetRequiredService<IAuthService>();

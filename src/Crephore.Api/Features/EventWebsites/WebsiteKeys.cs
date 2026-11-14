@@ -18,12 +18,13 @@ public static class WebsiteKeys
         {
             ["hero"] = new HashSet<string>
             {
-                "fullscreen", "split", "arch", "editorial", "overlay-card", "collage", "banner", "filmstrip", "polaroid", "framed",
-                "offset-frame", "cinematic", "billboard", "headline", "corners",
+                "fullscreen", "split-framed", "split-overlap", "split-bento", "split-index", "detail-cards", "centre-stage", "side-notes", "photo-tab", "masthead", "horizon", "overlay-card", "polaroid-note", "polaroid-row", "polaroid-stack",
+                "cinematic", "billboard", "headline", "corners", "glass", "marquee", "details-bar",
             },
             ["countdown"] = new HashSet<string>
             {
-                "boxes", "minimal", "photo", "split", "invitation", "rings", "flip", "sentence", "days-only", "calendar", "strip",
+                "boxes", "photo", "split", "invitation", "rings", "flip", "sentence", "calendar", "strip",
+                "days-inline", "days-stacked", "days-editorial", "days-outline",
             },
             ["message"] = new HashSet<string>
             {
@@ -93,6 +94,11 @@ public static class WebsiteKeys
     // How big headings are set: the hero's and the other sections' (web app: site-theme/useSiteTheme.ts HeadingSize)
     public static readonly IReadOnlySet<string> HeadingSizes = new HashSet<string> { "small", "medium", "large", "extra-large" };
     public const string DefaultHeadingSize = "medium";
+
+    // How every section's eyebrow (the small label above a heading) looks: plain text or in a box (web app:
+    // site-theme/useSiteTheme.ts EyebrowStyle). Eyebrows are always shown as the host typed them.
+    public static readonly IReadOnlySet<string> EyebrowStyles = new HashSet<string> { "plain", "boxed" };
+    public const string DefaultEyebrowStyle = "plain";
 
     // The theme's motion: the intro when the site opens, and how strongly (the intensity scales the intro's speed).
     // No intro, then the scenes for any event, weddings, parties, business and memorials (20 each).

@@ -377,9 +377,8 @@ namespace Crephore.Api.Data.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("varchar(1000)");
 
-                    b.Property<string>("PhotoUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
+                    b.Property<int?>("PhotoMediaId")
+                        .HasColumnType("int");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
@@ -388,6 +387,8 @@ namespace Crephore.Api.Data.Migrations
                         .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("PhotoMediaId");
 
                     b.HasIndex("EventId", "SortOrder");
 
@@ -420,6 +421,13 @@ namespace Crephore.Api.Data.Migrations
 
                     b.Property<int>("EventId")
                         .HasColumnType("int");
+
+                    b.Property<string>("EyebrowStyle")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("varchar(16)")
+                        .HasDefaultValue("plain");
 
                     b.Property<string>("FontPairingKey")
                         .IsRequired()
@@ -734,7 +742,14 @@ namespace Crephore.Api.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Crephore.Api.Data.Entities.Media", "PhotoMedia")
+                        .WithMany()
+                        .HasForeignKey("PhotoMediaId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Event");
+
+                    b.Navigation("PhotoMedia");
                 });
 
             modelBuilder.Entity("Crephore.Api.Data.Entities.EventWebsite", b =>

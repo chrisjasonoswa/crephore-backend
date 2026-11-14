@@ -23,7 +23,11 @@ public class CreateMediaTests(DatabaseFixture fixture)
     [InlineData(new byte[] { 0xFF, 0xD8, 0xFF, 0xE0, 0, 0x10 }, "image/jpeg", ".jpg")]
     [InlineData(new byte[] { 0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 1, 0 }, "image/gif", ".gif")]
     [InlineData(new byte[] { 0x52, 0x49, 0x46, 0x46, 0x24, 0, 0, 0, 0x57, 0x45, 0x42, 0x50, 0x56 }, "image/webp", ".webp")]
-    public async Task ShouldStoreThePhotoWithItsDetectedFormat_WhenItIsAJpgGifOrWebp(byte[] bytes, string contentType, string extension)
+    // AVIF: an `ftyp` box with "avif" as the main brand, or listed after "mif1", or "avis" (a sequence)
+    [InlineData(new byte[] { 0, 0, 0, 0x1C, 0x66, 0x74, 0x79, 0x70, 0x61, 0x76, 0x69, 0x66, 0, 0, 0, 0, 0x61, 0x76, 0x69, 0x66, 0x6D, 0x69, 0x66, 0x31, 0x6D, 0x69, 0x61, 0x66 }, "image/avif", ".avif")]
+    [InlineData(new byte[] { 0, 0, 0, 0x18, 0x66, 0x74, 0x79, 0x70, 0x6D, 0x69, 0x66, 0x31, 0, 0, 0, 0, 0x6D, 0x69, 0x66, 0x31, 0x61, 0x76, 0x69, 0x66 }, "image/avif", ".avif")]
+    [InlineData(new byte[] { 0, 0, 0, 0x14, 0x66, 0x74, 0x79, 0x70, 0x61, 0x76, 0x69, 0x73, 0, 0, 0, 0, 0x61, 0x76, 0x69, 0x73 }, "image/avif", ".avif")]
+    public async Task ShouldStoreThePhotoWithItsDetectedFormat_WhenItIsAJpgGifWebpOrAvif(byte[] bytes, string contentType, string extension)
     {
         var owner = await AppUserFactory.CreateAsync();
         var @event = await EventFactory.CreateAsync(owner.Id);
@@ -66,6 +70,7 @@ public class CreateMediaTests(DatabaseFixture fixture)
         (await Context.Media.CountAsync()).Should().Be(0);
     }
 
+
     [Fact]
     public async Task ShouldThrowValidationException_WhenTheFileIsNotAPhoto()
     {
@@ -76,9 +81,24 @@ public class CreateMediaTests(DatabaseFixture fixture)
         var act = async () => await MediaService.CreatePhotoAsync(@event.Id, owner.Id, new MemoryStream(svg), svg.Length);
 
         (await act.Should().ThrowAsync<AppValidationException>()).Which.Errors!["file"].Should()
-            .Equal("The photo must be a JPG, PNG, WebP or GIF image.");
+            .Equal("The photo must be a JPG, PNG, WebP, AVIF or GIF image.");
         (await Context.Media.CountAsync()).Should().Be(0);
     }
+
+    [Fact]
+    public async Task ShouldThrowValidationException_WhenTheFileIsAHeicPhoto()
+    {
+        var owner = await AppUserFactory.CreateAsync();
+        var @event = await EventFactory.CreateAsync(owner.Id);
+        // An `ftyp` box whose brands are HEIC's ("heic", "mif1"), not AVIF's
+        byte[] heic = [0, 0, 0, 0x18, 0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x63, 0, 0, 0, 0, 0x6D, 0x69, 0x66, 0x31, 0x68, 0x65, 0x69, 0x63];
+
+        var act = async () => await MediaService.CreatePhotoAsync(@event.Id, owner.Id, new MemoryStream(heic), heic.Length);
+
+        (await act.Should().ThrowAsync<AppValidationException>()).Which.Errors!["file"].Should()
+            .Equal("The photo must be a JPG, PNG, WebP, AVIF or GIF image.");
+    }
+
 
     [Fact]
     public async Task ShouldThrowValidationException_WhenThePhotoIsEmptyOrTooLarge()
@@ -108,6 +128,7 @@ public class CreateMediaTests(DatabaseFixture fixture)
         await act.Should().ThrowAsync<ForbiddenException>();
         (await Context.Media.CountAsync()).Should().Be(0);
     }
+
 
     [Fact]
     public async Task ShouldThrowNotFoundException_WhenEventBelongsToAnotherUser()

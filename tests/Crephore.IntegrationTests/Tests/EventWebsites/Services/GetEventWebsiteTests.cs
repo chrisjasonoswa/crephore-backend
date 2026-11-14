@@ -1,5 +1,6 @@
 using Crephore.Api.Common.Exceptions;
 using Crephore.Api.Features.EventWebsites.Dtos;
+using Crephore.IntegrationTests.Factories;
 using Crephore.IntegrationTests.Factories.Entities;
 using Crephore.IntegrationTests.Fixtures;
 using Crephore.IntegrationTests.Infrastructure;
@@ -18,7 +19,7 @@ public class GetEventWebsiteTests(DatabaseFixture fixture)
         var @event = await EventFactory.CreateAsync(owner.Id);
         await EventWebsiteFactory.CreateAsync(@event.Id,
         [
-            EventWebsiteFactory.BuildSection("hero", "split", "First"),
+            EventWebsiteFactory.BuildSection("hero", "split-framed", "First"),
             EventWebsiteFactory.BuildSection("countdown", "boxes", "Second"),
         ]);
 
@@ -30,6 +31,28 @@ public class GetEventWebsiteTests(DatabaseFixture fixture)
         website.Sections.Select(s => s.Type).Should().Equal("hero", "countdown");
         website.Sections[0].Options.Should().Contain("photoSide", "right");
         website.Sections[0].Content.GetProperty("heading").GetString().Should().Be("First");
+    }
+
+    [Fact]
+    public async Task ShouldReturnThePhotosWithTheirUrls_AndNoneForMediaThatNoLongerExists()
+    {
+        var owner = await AppUserFactory.CreateAsync();
+        var @event = await EventFactory.CreateAsync(owner.Id);
+        var photo = await MediaFactory.CreatePhotoAsync(@event.Id);
+        var gone = await MediaFactory.CreatePhotoAsync(@event.Id);
+        var section = EventWebsiteFactory.BuildSection();
+        section.Content = $$"""{ "backgroundPhoto": { "mediaId": {{photo.Id}} }, "layoutPhotos": [{ "mediaId": {{gone.Id}} }] }""";
+        await EventWebsiteFactory.CreateAsync(@event.Id, [section]);
+        Context.Media.Remove(gone);
+        await Context.SaveChangesAsync();
+
+        var website = await EventWebsitesService.GetAsync(@event.Id, owner.Id);
+
+        var content = website!.Sections.Single().Content;
+        content.GetProperty("backgroundPhoto").GetProperty("mediaId").GetInt32().Should().Be(photo.Id);
+        content.GetProperty("backgroundPhoto").GetProperty("url").GetString()
+            .Should().Be($"{CustomWebApplicationFactory.StoragePublicBaseUrl}/{photo.StorageKey}");
+        content.GetProperty("layoutPhotos")[0].ValueKind.Should().Be(System.Text.Json.JsonValueKind.Null);
     }
 
     [Fact]

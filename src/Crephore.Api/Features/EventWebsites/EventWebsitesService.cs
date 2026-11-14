@@ -6,6 +6,7 @@ using Crephore.Api.Common.Exceptions;
 using Crephore.Api.Data;
 using Crephore.Api.Data.Entities;
 using Crephore.Api.Features.EventWebsites.Dtos;
+using Crephore.Api.Features.Media;
 using Microsoft.EntityFrameworkCore;
 
 namespace Crephore.Api.Features.EventWebsites;
@@ -19,9 +20,10 @@ public interface IEventWebsitesService
     Task<EventWebsiteDto> UnpublishAsync(int eventId, int userId);
 }
 
-public class EventWebsitesService(AppDbContext context) : IEventWebsitesService
+public class EventWebsitesService(AppDbContext context, IMediaService mediaService) : IEventWebsitesService
 {
     private readonly AppDbContext _context = context;
+    private readonly IMediaService _mediaService = mediaService;
 
     public const int MaxSections = 50;
     public const int ContentMaxBytes = 64 * 1024;
@@ -38,7 +40,7 @@ public class EventWebsitesService(AppDbContext context) : IEventWebsitesService
             .Include(w => w.Sections)
             .FirstOrDefaultAsync(w => w.EventId == eventId);
 
-        return website?.ToEventWebsiteDto();
+        return website is null ? null : await ToDtoAsync(website);
     }
 
     // Creates the website on its first save. Replaces the theme and the sections: sections with an id are updated,
@@ -51,7 +53,13 @@ public class EventWebsitesService(AppDbContext context) : IEventWebsitesService
             .Include(w => w.Sections)
             .FirstOrDefaultAsync(w => w.EventId == eventId);
 
-        Validate(request, website);
+        // The photos the sections use (references to the event's media): unknown ones are errors, and the rest
+        // get their URLs in the response
+        var mediaUrls = await _mediaService.GetUrlsAsync(eventId, request.Sections
+            .Where(s => s.Content.ValueKind == JsonValueKind.Object)
+            .SelectMany(s => MediaReferences.IdsIn(s.Content)));
+
+        var contents = Validate(request, website, mediaUrls);
 
         if (website is null)
         {
@@ -68,6 +76,7 @@ public class EventWebsitesService(AppDbContext context) : IEventWebsitesService
         website.CornerStyle = theme.CornerStyle;
         website.HeroHeadingSize = theme.HeroHeadingSize;
         website.HeadingSize = theme.HeadingSize;
+        website.EyebrowStyle = theme.EyebrowStyle;
         website.MotionIntro = theme.Motion.Intro;
         website.MotionIntensity = theme.Motion.Intensity;
 
@@ -91,7 +100,7 @@ public class EventWebsitesService(AppDbContext context) : IEventWebsitesService
             section.Layout = item.Layout;
             section.Background = item.Background;
             section.Options = new Dictionary<string, string>(item.Options);
-            section.Content = item.Content.GetRawText();
+            section.Content = contents[index];
             section.ContentVersion = item.ContentVersion;
             section.IsVisible = item.IsVisible;
             section.Visibility = item.Visibility;
@@ -104,7 +113,7 @@ public class EventWebsitesService(AppDbContext context) : IEventWebsitesService
             "website",
             "This website was just saved somewhere else. Reload the page to see it.");
 
-        return website.ToEventWebsiteDto();
+        return website.ToEventWebsiteDto(mediaUrls);
     }
 
     // Removes the website and its sections (the host starts over). Its uploaded photos stay in the event's media.
@@ -133,7 +142,7 @@ public class EventWebsitesService(AppDbContext context) : IEventWebsitesService
         website.PublishedAt = DateTimeOffset.UtcNow;
         await _context.SaveChangesAsync();
 
-        return website.ToEventWebsiteDto();
+        return await ToDtoAsync(website);
     }
 
     // Guests no longer see the website; the saved website stays
@@ -146,10 +155,18 @@ public class EventWebsitesService(AppDbContext context) : IEventWebsitesService
         website.PublishedAt = null;
         await _context.SaveChangesAsync();
 
-        return website.ToEventWebsiteDto();
+        return await ToDtoAsync(website);
     }
 
     // Helpers
+    // The website with the URLs of the photos its sections use. Expects Sections to be loaded.
+    private async Task<EventWebsiteDto> ToDtoAsync(EventWebsite website)
+    {
+        var mediaUrls = await _mediaService.GetUrlsAsync(website.EventId,
+            website.Sections.SelectMany(s => MediaReferences.IdsIn(s.Content)));
+        return website.ToEventWebsiteDto(mediaUrls);
+    }
+
     // An optional colour: left empty (or blank) is none
     private static string? OptionalColor(string? color) =>
         string.IsNullOrWhiteSpace(color) ? null : color.ToUpperInvariant();
@@ -161,9 +178,12 @@ public class EventWebsitesService(AppDbContext context) : IEventWebsitesService
         ?? throw new NotFoundException(notFoundMessage);
 
     // Throws an AppValidationException with every error. Sections have no fields in the editor to show errors on,
-    // so the first error is also the message (the web app shows it as a toast).
-    private static void Validate(UpdateEventWebsiteRequestDto request, EventWebsite? website)
+    // so the first error is also the message (the web app shows it as a toast). Returns each section's content as
+    // stored: its photos reduced to their media id. `mediaUrls` holds the event's media among the photos' ids.
+    private static List<string> Validate(UpdateEventWebsiteRequestDto request, EventWebsite? website,
+        IReadOnlyDictionary<int, string> mediaUrls)
     {
+        var contents = new List<string>();
         var errors = new Dictionary<string, List<string>>();
 
         if (!WebsiteKeys.FontPairings.Contains(request.Theme.FontPairingKey))
@@ -174,6 +194,8 @@ public class EventWebsitesService(AppDbContext context) : IEventWebsitesService
             AddError(errors, "heroHeadingSize", "The hero heading size must be small, medium, large or extra large.");
         if (!WebsiteKeys.HeadingSizes.Contains(request.Theme.HeadingSize))
             AddError(errors, "headingSize", "The heading size must be small, medium, large or extra large.");
+        if (!WebsiteKeys.EyebrowStyles.Contains(request.Theme.EyebrowStyle))
+            AddError(errors, "eyebrowStyle", "The eyebrow style must be plain or boxed.");
         if (!WebsiteKeys.PageIntros.Contains(request.Theme.Motion.Intro))
             AddError(errors, "motion.intro", "The intro animation is not one Crephore offers.");
         if (!WebsiteKeys.MotionIntensities.Contains(request.Theme.Motion.Intensity))
@@ -205,6 +227,16 @@ public class EventWebsitesService(AppDbContext context) : IEventWebsitesService
                 AddError(errors, "sections", $"{name} has no content.");
             else if (Encoding.UTF8.GetByteCount(section.Content.GetRawText()) > ContentMaxBytes)
                 AddError(errors, "sections", $"{name} has too much content.");
+            else if (!MediaReferences.TryToStored(section.Content, out var stored, out var mediaIds))
+                AddError(errors, "sections", $"{name} has a photo that isn't valid.");
+            else if (!mediaIds.All(mediaUrls.ContainsKey))
+                AddError(errors, "sections", $"{name} has a photo that is no longer available. Upload it again.");
+            else
+            {
+                contents.Add(stored.ToJsonString());
+                continue;
+            }
+            contents.Add(string.Empty);
         }
 
         var heroCount = request.Sections.Count(s => s.Type == WebsiteKeys.HeroSectionType);
@@ -215,6 +247,8 @@ public class EventWebsitesService(AppDbContext context) : IEventWebsitesService
 
         if (errors.Count > 0)
             throw new AppValidationException(errors.Values.First().First(), errors);
+
+        return contents;
     }
 
     private static void AddError(Dictionary<string, List<string>> errors, string field, string message)

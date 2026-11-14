@@ -373,3 +373,6 @@ FodyWeavers.xsd
 .codex-artifacts
 # Photos uploaded in local development (Storage:Provider "Local")
 src/Crephore.Api/uploads/
+
+# Throwaway files from Claude sessions (screenshots, scratch scripts): safe to delete any time
+claude-tmp/

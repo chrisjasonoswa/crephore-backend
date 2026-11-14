@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Crephore.Api.Features.Media.Dtos;
 
 namespace Crephore.Api.Features.EventVenues.Dtos;
 
@@ -25,8 +26,8 @@ public class UpdateEventVenueItemDto
     // The pin the web app reads from those links: both or neither
     public decimal? Latitude { get; set; }
     public decimal? Longitude { get; set; }
-    // A URL returned by POST api/events/{eventId}/media
-    public string? PhotoUrl { get; set; }
+    // One of the event's media (POST api/events/{eventId}/media) by its id, { mediaId }; null for none
+    public MediaReferenceDto? Photo { get; set; }
     // Free text for guests, e.g. directions and parking
     public string? Notes { get; set; }
 }

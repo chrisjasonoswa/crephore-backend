@@ -1,8 +1,10 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Crephore.Api.Common.Constants;
 using Crephore.Api.Common.Exceptions;
 using Crephore.Api.Features.EventWebsites;
 using Crephore.Api.Features.EventWebsites.Dtos;
+using Crephore.IntegrationTests.Factories;
 using Crephore.IntegrationTests.Factories.Entities;
 using Crephore.IntegrationTests.Fixtures;
 using Crephore.IntegrationTests.Infrastructure;
@@ -14,17 +16,20 @@ namespace Crephore.IntegrationTests.Tests.EventWebsites.Services;
 public class UpdateEventWebsiteTests(DatabaseFixture fixture)
     : EventWebsitesBaseTestClass(fixture)
 {
-    private static UpdateWebsiteSectionRequestDto BuildSection(int? id = null, string type = "hero", string layout = "split", string heading = "Ana & Marco") => new()
+    private static UpdateWebsiteSectionRequestDto BuildSection(int? id = null, string type = "hero", string layout = "split-framed", string heading = "Ana & Marco") => new()
     {
         Id = id,
         Type = type,
         Layout = layout,
         Background = "photo",
         Options = new Dictionary<string, string> { ["photoSide"] = "left" },
-        Content = JsonSerializer.SerializeToElement(new { heading, backgroundPhoto = "http://localhost/uploads/a.jpg", layoutPhotos = Array.Empty<string>() }),
+        Content = JsonSerializer.SerializeToElement(new { heading, layoutPhotos = Array.Empty<object>() }),
         ContentVersion = 1,
         IsVisible = true,
     };
+
+    private static string UrlOf(Crephore.Api.Data.Entities.Media media) =>
+        $"{CustomWebApplicationFactory.StoragePublicBaseUrl}/{media.StorageKey}";
 
     private static UpdateEventWebsiteRequestDto BuildRequest(params UpdateWebsiteSectionRequestDto[] sections) => new()
     {
@@ -58,7 +63,7 @@ public class UpdateEventWebsiteTests(DatabaseFixture fixture)
         saved.FontPairingKey.Should().Be("romantic");
         saved.BackgroundColor.Should().Be("#FFFCF4");
         new[] { saved.SecondaryColor, saved.AccentColor }.Should().Equal("#E9DFC8", "#B5835A");
-        saved.Sections.OrderBy(s => s.SortOrder).Select(s => s.Layout).Should().Equal("split", "boxes");
+        saved.Sections.OrderBy(s => s.SortOrder).Select(s => s.Layout).Should().Equal("split-framed", "boxes");
         saved.Sections.First(s => s.Type == "hero").Options.Should().Contain("photoSide", "left");
     }
 
@@ -69,21 +74,21 @@ public class UpdateEventWebsiteTests(DatabaseFixture fixture)
         var @event = await EventFactory.CreateAsync(owner.Id);
         var existing = await EventWebsiteFactory.CreateAsync(@event.Id,
         [
-            EventWebsiteFactory.BuildSection("hero", "split", "Kept"),
+            EventWebsiteFactory.BuildSection("hero", "split-framed", "Kept"),
             EventWebsiteFactory.BuildSection("countdown", "boxes", "Removed"),
         ]);
         var kept = existing.Sections.Single(s => s.Type == "hero");
 
         // A new section first, then the kept one with a new layout
         var website = await EventWebsitesService.UpdateAsync(@event.Id, owner.Id,
-            BuildRequest(BuildSection(type: "countdown", layout: "rings", heading: "New"), BuildSection(id: kept.Id, layout: "arch", heading: "Kept")));
+            BuildRequest(BuildSection(type: "countdown", layout: "rings", heading: "New"), BuildSection(id: kept.Id, layout: "centre-stage", heading: "Kept")));
 
         website.Id.Should().Be(existing.Id);
         website.Sections.Select(s => s.Content.GetProperty("heading").GetString()).Should().Equal("New", "Kept");
         website.Sections[1].Id.Should().Be(kept.Id);
 
         var sections = await Context.WebsiteSections.AsNoTracking().Where(s => s.EventWebsiteId == existing.Id).OrderBy(s => s.SortOrder).ToListAsync();
-        sections.Select(s => s.Layout).Should().Equal("rings", "arch");
+        sections.Select(s => s.Layout).Should().Equal("rings", "centre-stage");
         sections[1].Id.Should().Be(kept.Id);
     }
 
@@ -230,6 +235,32 @@ public class UpdateEventWebsiteTests(DatabaseFixture fixture)
     }
 
     [Fact]
+    public async Task ShouldSaveTheEyebrowStyle_WhenTheThemeHasIt()
+    {
+        var owner = await AppUserFactory.CreateAsync();
+        var @event = await EventFactory.CreateAsync(owner.Id);
+        var request = BuildRequest(BuildSection());
+        request.Theme.EyebrowStyle = "boxed";
+
+        var website = await EventWebsitesService.UpdateAsync(@event.Id, owner.Id, request);
+
+        website.Theme.EyebrowStyle.Should().Be("boxed");
+        var saved = await Context.EventWebsites.AsNoTracking().SingleAsync(w => w.EventId == @event.Id);
+        saved.EyebrowStyle.Should().Be("boxed");
+    }
+
+    [Fact]
+    public async Task ShouldSavePlainEyebrows_WhenTheThemeLeavesTheStyleOut()
+    {
+        var owner = await AppUserFactory.CreateAsync();
+        var @event = await EventFactory.CreateAsync(owner.Id);
+
+        var website = await EventWebsitesService.UpdateAsync(@event.Id, owner.Id, BuildRequest(BuildSection()));
+
+        website.Theme.EyebrowStyle.Should().Be("plain");
+    }
+
+    [Fact]
     public async Task ShouldCreateOneWebsite_WhenItIsFirstSavedTwiceAtOnce()
     {
         var owner = await AppUserFactory.CreateAsync();
@@ -256,10 +287,11 @@ public class UpdateEventWebsiteTests(DatabaseFixture fixture)
         request.Theme.CornerStyle = "wavy";
         request.Theme.HeroHeadingSize = "huge";
         request.Theme.HeadingSize = "";
+        request.Theme.EyebrowStyle = "underlined";
 
         var act = async () => await EventWebsitesService.UpdateAsync(@event.Id, owner.Id, request);
 
-        (await act.Should().ThrowAsync<AppValidationException>()).Which.Errors.Should().ContainKeys("fontPairingKey", "cornerStyle", "heroHeadingSize", "headingSize");
+        (await act.Should().ThrowAsync<AppValidationException>()).Which.Errors.Should().ContainKeys("fontPairingKey", "cornerStyle", "heroHeadingSize", "headingSize", "eyebrowStyle");
     }
 
     [Theory]
@@ -356,6 +388,65 @@ public class UpdateEventWebsiteTests(DatabaseFixture fixture)
         (await act.Should().ThrowAsync<AppValidationException>()).Which.Errors!["sections"].Should().Equal(
             "Section 1 has no content.",
             "Section 2 has too much content.");
+    }
+
+    [Fact]
+    public async Task ShouldStoreThePhotosAsTheirMediaIdsOnly_AndReturnThemWithTheirUrls()
+    {
+        var owner = await AppUserFactory.CreateAsync();
+        var @event = await EventFactory.CreateAsync(owner.Id);
+        var background = await MediaFactory.CreatePhotoAsync(@event.Id);
+        var layout = await MediaFactory.CreatePhotoAsync(@event.Id);
+        var chapter = await MediaFactory.CreatePhotoAsync(@event.Id);
+        var section = BuildSection(type: "about", layout: "split");
+        // The URLs the web app sends back are dropped; a gap in the layout photos stays
+        section.Content = JsonSerializer.SerializeToElement(new
+        {
+            backgroundPhoto = new { mediaId = background.Id, url = "https://elsewhere.example/a.jpg" },
+            layoutPhotos = new object?[] { null, new { mediaId = layout.Id, url = "x" } },
+            timeline = new[] { new { heading = "We met", photo = new { mediaId = chapter.Id } } },
+            cta = new { href = "https://example.com/photo.jpg" },
+        });
+
+        var website = await EventWebsitesService.UpdateAsync(@event.Id, owner.Id, BuildRequest(BuildSection(), section));
+
+        var saved = await Context.WebsiteSections.AsNoTracking().SingleAsync(s => s.Type == "about");
+        JsonNode.DeepEquals(JsonNode.Parse(saved.Content), JsonNode.Parse($$"""
+            {
+              "backgroundPhoto": { "mediaId": {{background.Id}} },
+              "layoutPhotos": [null, { "mediaId": {{layout.Id}} }],
+              "timeline": [{ "heading": "We met", "photo": { "mediaId": {{chapter.Id}} } }],
+              "cta": { "href": "https://example.com/photo.jpg" }
+            }
+            """)).Should().BeTrue(saved.Content);
+
+        var content = website.Sections[1].Content;
+        content.GetProperty("backgroundPhoto").GetProperty("url").GetString().Should().Be(UrlOf(background));
+        content.GetProperty("layoutPhotos")[1].GetProperty("url").GetString().Should().Be(UrlOf(layout));
+        content.GetProperty("timeline")[0].GetProperty("photo").GetProperty("url").GetString().Should().Be(UrlOf(chapter));
+    }
+
+    [Fact]
+    public async Task ShouldThrowValidationException_WhenAPhotoIsNotOneOfTheEventsMediaOrHasAnInvalidId()
+    {
+        var owner = await AppUserFactory.CreateAsync();
+        var @event = await EventFactory.CreateAsync(owner.Id);
+        var otherEvent = await EventFactory.CreateAsync(owner.Id);
+        var otherPhoto = await MediaFactory.CreatePhotoAsync(otherEvent.Id);
+        var otherEventsPhoto = BuildSection();
+        otherEventsPhoto.Content = JsonSerializer.SerializeToElement(new { backgroundPhoto = new { mediaId = otherPhoto.Id } });
+        var unknownPhoto = BuildSection(type: "countdown", layout: "boxes");
+        unknownPhoto.Content = JsonSerializer.SerializeToElement(new { layoutPhotos = new[] { new { mediaId = otherPhoto.Id + 1000 } } });
+        var invalidId = BuildSection(type: "message", layout: "card");
+        invalidId.Content = JsonSerializer.SerializeToElement(new { backgroundPhoto = new { mediaId = "12" } });
+
+        var act = async () => await EventWebsitesService.UpdateAsync(@event.Id, owner.Id, BuildRequest(otherEventsPhoto, unknownPhoto, invalidId));
+
+        (await act.Should().ThrowAsync<AppValidationException>()).Which.Errors!["sections"].Should().Equal(
+            "Section 1 has a photo that is no longer available. Upload it again.",
+            "Section 2 has a photo that is no longer available. Upload it again.",
+            "Section 3 has a photo that isn't valid.");
+        (await Context.EventWebsites.CountAsync()).Should().Be(0);
     }
 
     [Fact]

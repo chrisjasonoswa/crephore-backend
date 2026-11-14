@@ -3,13 +3,15 @@ using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Crephore.Api.Data.Entities;
 using Crephore.Api.Features.EventWebsites.Dtos;
+using Crephore.Api.Features.Media;
 
 namespace Crephore.Api.Features.EventWebsites;
 
 public static class EventWebsitesMapper
 {
-    // Expects Sections to be loaded
-    public static EventWebsiteDto ToEventWebsiteDto(this EventWebsite website)
+    // Expects Sections to be loaded. `mediaUrls` (by media id) are the URLs of the photos in their content
+    // (MediaReferences), which are stored without them.
+    public static EventWebsiteDto ToEventWebsiteDto(this EventWebsite website, IReadOnlyDictionary<int, string> mediaUrls)
     {
         return new EventWebsiteDto
         {
@@ -19,7 +21,7 @@ public static class EventWebsitesMapper
             Sections = [.. website.Sections
                 .OrderBy(s => s.SortOrder)
                 .ThenBy(s => s.Id)
-                .Select(s => s.ToWebsiteSectionDto())],
+                .Select(s => s.ToWebsiteSectionDto(mediaUrls))],
             PublishedAt = website.PublishedAt,
             HasUnpublishedChanges = website.HasUnpublishedChanges(),
             CreatedAt = website.CreatedAt,
@@ -87,6 +89,7 @@ public static class EventWebsitesMapper
         CornerStyle = website.CornerStyle,
         HeroHeadingSize = website.HeroHeadingSize,
         HeadingSize = website.HeadingSize,
+        EyebrowStyle = website.EyebrowStyle,
         Motion = new WebsiteMotionDto
         {
             Intro = website.MotionIntro,
@@ -94,7 +97,8 @@ public static class EventWebsitesMapper
         },
     };
 
-    public static WebsiteSectionDto ToWebsiteSectionDto(this WebsiteSection section)
+    // The photos in the content (MediaReferences) get their URL from `mediaUrls`, by media id
+    public static WebsiteSectionDto ToWebsiteSectionDto(this WebsiteSection section, IReadOnlyDictionary<int, string> mediaUrls)
     {
         return new WebsiteSectionDto
         {
@@ -103,7 +107,7 @@ public static class EventWebsitesMapper
             Layout = section.Layout,
             Background = section.Background,
             Options = new Dictionary<string, string>(section.Options),
-            Content = JsonSerializer.Deserialize<JsonElement>(section.Content),
+            Content = MediaReferences.WithUrls(section.Content, mediaUrls),
             ContentVersion = section.ContentVersion,
             IsVisible = section.IsVisible,
             Visibility = section.Visibility,
